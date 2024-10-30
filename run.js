@@ -31,10 +31,14 @@ const colors = [
   '\x1b[36m'  // Cyan
 ];
 
+function getRandomColor() {
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
 function kedipKedipPesan(pesan, duration) {
   let colorIndex = 0;
   const blinkInterval = setInterval(() => {
-    process.stdout.write(`\x1b[5m${colors[colorIndex % colors.length]}${pesan}\x1b[0m\r`);
+    process.stdout.write(`${getRandomColor()}${pesan}\x1b[0m\r`); // Menggunakan warna acak
     colorIndex++;
   }, 200); // Ganti warna setiap 0.2 detik
 
@@ -128,13 +132,12 @@ async function jalankanProgram() {
     // Cek status WebSocket setiap 5 menit
     setInterval(() => {
       if (socket.readyState === WebSocket.OPEN) {
-        console.log(chalk.green('WebSocket masih terhubung'));
+        console.log(chalk.green('WebSocket masih terhubung.'));
       } else {
         console.log(chalk.red('WebSocket tidak terhubung'));
       }
     }, 300000); // 300000 ms = 5 menit
 
- 
     setInterval(async () => {
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
@@ -143,7 +146,7 @@ async function jalankanProgram() {
         console.log(chalk.green('Sesi diperbarui. Token akses berhasil'));
         supabase.auth.setSession(refreshData.session);
       }
-    }, 950000); t
+    }, 950000);
 
   } catch (error) {
     console.error(chalk.red('Kesalahan:'), error.message);
