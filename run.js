@@ -98,7 +98,7 @@ function startColorChange() {
   // Cetak setiap 1 jam
   setInterval(() => {
     const jam = formatTimestamp(new Date()); // Ambil timestamp saat ini
-    console.log(currentColor(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${jam}`));
+    console.log(currentColor(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | DATE: ${jam}`));
   }, 3600000); // Mengatur interval untuk mencetak setiap 1 jam
 }
 
