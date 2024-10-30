@@ -25,17 +25,13 @@ function getNextColor() {
   return color;
 }
 
-function blinkLog(message) {
-  let count = 0;
-  const interval = setInterval(() => {
+function blinkLog(message, duration = 2000, interval = 200) {
+  const endTime = Date.now() + duration;
+  const blinkInterval = setInterval(() => {
     console.log(getNextColor()(message));
-    count += 1;
-    if (count >= 10) clearInterval(interval); // Menghentikan kedipan setelah 10 kali
-  }, 200);
+    if (Date.now() >= endTime) clearInterval(blinkInterval);
+  }, interval);
 }
-
-console.log(getNextColor()('SUPABASE_URL:'), getNextColor()(process.env.SUPABASE_URL));
-console.log(getNextColor()('SUPABASE_KEY (10 karakter pertama):'), getNextColor()(process.env.SUPABASE_KEY.substring(0, 10)));
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
@@ -88,7 +84,7 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
     setTimeout(() => {
       blinkLog('Mencoba untuk menyambung kembali...');
       buatKoneksiWebSocket(userId, tokenAkses);
-    }, 5000); // Coba sambung kembali setelah 5 detik
+    }, 18000); // Coba sambung kembali 
   });
 
   return socket;
@@ -118,28 +114,14 @@ async function jalankanProgram() {
     totalPoints = poinPengguna.total_poin;
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
 
-    setInterval(() => {
-      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-      blinkLog(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${timestamp}`);
-    }, 300000); // 300000 ms = 5 menit
-
+    // Cek status WebSocket 
     setInterval(() => {
       if (socket.readyState === WebSocket.OPEN) {
-        blinkLog('WebSocket masih terhubung');
+        blinkLog('Status WebSocket: Masih terhubung');
       } else {
-        blinkLog('WebSocket tidak terhubung');
+        blinkLog('Status WebSocket: Tidak terhubung');
       }
-    }, 300000); // 300000 ms = 5 menit
-
-    setInterval(async () => {
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        blinkLog(`Error memperbarui sesi: ${refreshError.message}`);
-      } else {
-        blinkLog('Sesi diperbarui. Token akses success');
-        supabase.auth.setSession(refreshData.session);
-      }
-    }, 180000); 
+    }, 120000); // 10000 ms = 10 detik
 
   } catch (error) {
     blinkLog(`Kesalahan: ${error.message}`);
