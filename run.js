@@ -33,10 +33,6 @@ function getNextColor() {
 let totalPoints = 0;
 let pointsToday = 0;
 
-function getCurrentTimestamp() {
-  return new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-}
-
 async function ambilPoinPengguna(userId) {
   try {
     const { data, error } = await supabase
@@ -102,7 +98,8 @@ async function jalankanProgram() {
 
     const session = data.session;
     console.log(chalk.green('Autentikasi berhasil'));
-    console.log(chalk.green('Token Akses sukses'));
+    console.log(chalk.green('Token Akses:'), session.access_token);
+    console.log(chalk.green('Token Penyegaran:'), session.refresh_token);
 
     supabase.auth.setSession({
       access_token: session.access_token,
@@ -111,19 +108,20 @@ async function jalankanProgram() {
 
     const poinPengguna = await ambilPoinPengguna(data.user.id);
     totalPoints = poinPengguna.total_poin;
+    pointsToday = poinPengguna.poin_hari_ini; // Menyimpan poin harian
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
 
-    // Print pembaruan poin setiap 5 menit dengan timestamp
+    // Print pembaruan poin setiap 5 menit
     setInterval(() => {
-      const timestamp = getCurrentTimestamp();
+      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
       console.log(getNextColor()(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${timestamp}`));
     }, 300000); // 300000 ms = 5 menit
 
-    // Total poin kedip-kedip
+    // Kedipkan warna setiap 5 detik dengan poin harian
     setInterval(() => {
-      const timestamp = getCurrentTimestamp();
-      console.log(getNextColor()(`TOTAL POINT: ${totalPoints} | JAM: ${timestamp}`));
-    }, 1000); // 1000 ms = 1 detik untuk efek kedip-kedip
+      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
+      console.log(getNextColor()(`KEDIP KEDIP... | POINT DAILY: ${pointsToday} | JAM: ${timestamp}`));
+    }, 5000); // 5000 ms = 5 detik
 
     // Cek apakah WebSocket terhubung setiap 5 menit
     setInterval(() => {
