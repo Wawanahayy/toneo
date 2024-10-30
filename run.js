@@ -33,6 +33,10 @@ function getNextColor() {
 let totalPoints = 0;
 let pointsToday = 0;
 
+function getCurrentTimestamp() {
+  return new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
+}
+
 async function ambilPoinPengguna(userId) {
   try {
     const { data, error } = await supabase
@@ -98,7 +102,7 @@ async function jalankanProgram() {
 
     const session = data.session;
     console.log(chalk.green('Autentikasi berhasil'));
-    console.log(chalk.green('Token Akses success')); // Tampilkan pesan sukses
+    console.log(chalk.green('Token Akses sukses'));
 
     supabase.auth.setSession({
       access_token: session.access_token,
@@ -109,11 +113,17 @@ async function jalankanProgram() {
     totalPoints = poinPengguna.total_poin;
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
 
-    // Print pembaruan poin setiap 5 menit
+    // Print pembaruan poin setiap 5 menit dengan timestamp
     setInterval(() => {
-      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
+      const timestamp = getCurrentTimestamp();
       console.log(getNextColor()(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${timestamp}`));
     }, 300000); // 300000 ms = 5 menit
+
+    // Total poin kedip-kedip
+    setInterval(() => {
+      const timestamp = getCurrentTimestamp();
+      console.log(getNextColor()(`TOTAL POINT: ${totalPoints} | JAM: ${timestamp}`));
+    }, 1000); // 1000 ms = 1 detik untuk efek kedip-kedip
 
     // Cek apakah WebSocket terhubung setiap 5 menit
     setInterval(() => {
@@ -130,10 +140,10 @@ async function jalankanProgram() {
       if (refreshError) {
         console.error(chalk.red('Error memperbarui sesi:'), refreshError);
       } else {
-        console.log(chalk.green('Sesi diperbarui. Token akses success')); // Tampilkan pesan sukses
+        console.log(chalk.green('Sesi diperbarui. Token akses baru:'), refreshData.session.access_token);
         supabase.auth.setSession(refreshData.session);
       }
-    }, 180000); 
+    }, 180000); // 1800000 ms = 30 menit
 
   } catch (error) {
     console.error(chalk.red('Kesalahan:'), error.message);
