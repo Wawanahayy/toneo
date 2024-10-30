@@ -1,0 +1,24 @@
+{
+  "name": "toneo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "https://github.com/Wawanahayy/toneo",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wawanahayy/toneo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Wawanahayy/toneo/issues"
+  },
+  "homepage": "https://github.com/Wawanahayy/toneo#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.46.1",
+    "chalk": "^5.3.0",
+    "dotenv": "^16.4.5"
+  }
+}
