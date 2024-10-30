@@ -24,6 +24,12 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 // Array warna
 const colors = [chalk.red, chalk.green, chalk.yellow, chalk.blue, chalk.magenta, chalk.cyan];
 let colorIndex = 0; // Indeks warna untuk digunakan
+let currentColor = chalk.white; // Warna saat ini untuk menampilkan
+
+// Variabel untuk menyimpan total poin
+let totalPoints = 0;
+let pointsToday = 0; // Menyimpan poin hari ini
+let colorInterval;
 
 function getNextColor() {
   const color = colors[colorIndex];
@@ -31,24 +37,23 @@ function getNextColor() {
   return color;
 }
 
-// Variabel untuk menyimpan total poin
-let totalPoints = 0;
+function ambilPoinDariData(parsedData) {
+  pointsToday = parsedData.pointsToday; // Update poin hari ini
+  totalPoints = parsedData.pointsTotal; // Update total poin
+}
 
-async function ambilPoinPengguna(userId) {
-  try {
-    const { data, error } = await supabase
-      .from('user_points')
-      .select('total_poin, poin_UPDATE')
-      .eq('id_pengguna', userId)
-      .single();
-
-    if (error) throw error;
-
-    return data || { total_poin: 0, poin_hari_ini: 0 };
-  } catch (error) {
-    console.error(chalk.red('Gagal mengambil poin pengguna:'), error.message);
-    return { total_poin: 0, poin_hari_ini: 0 };
-  }
+function formatTimestamp(date) {
+  const options = {
+    timeZone: 'Asia/Jakarta', // Mengatur zona waktu ke GMT+7
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  };
+  return new Intl.DateTimeFormat('id-ID', options).format(date).replace(',', ''); // Format timestamp
 }
 
 function buatKoneksiWebSocket(userId, tokenAkses) {
@@ -64,11 +69,11 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
 
   socket.on('message', (data) => {
     const parsedData = JSON.parse(data.toString());
-    console.log(chalk.yellow('Pesan diterima:'), parsedData);
+    ambilPoinDariData(parsedData); // Ambil poin dari data WebSocket
 
-    // Update total poin dari pesan WebSocket
-    totalPoints = parsedData.pointsTotal; // Memperbarui total poin
-    console.log(chalk.green(`Total Poin Diperbarui: ${totalPoints}`));
+    const jam = formatTimestamp(new Date()); // Ambil timestamp saat ini
+    // Update tampilan total poin dengan jam
+    process.stdout.write(`\r${currentColor(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${jam}`)}`);
   });
 
   socket.on('error', (error) => {
@@ -82,28 +87,19 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
   return socket;
 }
 
-function mulaiPembaruanPoin(socket, poinAwal) {
-  let poin = poinAwal;
+function startColorChange() {
+  colorInterval = setInterval(() => {
+    currentColor = getNextColor();
+    // Menampilkan total poin dengan warna yang berubah
+    const jam = formatTimestamp(new Date()); // Ambil timestamp saat ini
+    process.stdout.write(`\r${currentColor(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${jam}`)}`);
+  }, 200); // Mengubah warna setiap 200ms
 
+  // Cetak setiap 1 jam
   setInterval(() => {
-    const poinBaruHariIni = poin.poin_hari_ini + Math.floor(Math.random() * 5);
-    const poinTotalBaru = totalPoints + (poinBaruHariIni - poin.poin_hari_ini); // Menggunakan totalPoints
-
-    poin = { total_poin: poinTotalBaru, poin_hari_ini: poinBaruHariIni };
-
-    // Ambil warna berikutnya
-    const color = getNextColor();
-
-    console.log(color(`POINT UPDATE | TOTAL POINT DAILY: ${poinBaruHariIni} | POINT UPDATE: ${poin.poin_hari_ini} | ALL POINT: ${poinTotalBaru}`));
-
-    if (socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        type: "UPDATE_POINTS",
-        pointsTotal: poinTotalBaru,
-        pointsToday: poinBaruHariIni
-      }));
-    }
-  }, 60000);
+    const jam = formatTimestamp(new Date()); // Ambil timestamp saat ini
+    console.log(currentColor(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${jam}`));
+  }, 3600000); // Mengatur interval untuk mencetak setiap 1 jam
 }
 
 async function jalankanProgram() {
@@ -127,11 +123,10 @@ async function jalankanProgram() {
       refresh_token: session.refresh_token
     });
 
-    const poinPengguna = await ambilPoinPengguna(data.user.id);
-    totalPoints = poinPengguna.total_poin; // Inisialisasi total poin dari database
+    // Mulai koneksi WebSocket
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
-    mulaiPembaruanPoin(socket, poinPengguna);
     
+    // Menjalankan interval untuk memperbarui sesi
     setInterval(async () => {
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
@@ -147,4 +142,6 @@ async function jalankanProgram() {
   }
 }
 
+// Mulai interval warna saat program dijalankan
+startColorChange();
 jalankanProgram();
