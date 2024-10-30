@@ -21,6 +21,16 @@ console.log(chalk.blue('SUPABASE_KEY (10 karakter pertama):'), chalk.green(proce
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
+// Array warna
+const colors = [chalk.red, chalk.green, chalk.yellow, chalk.blue, chalk.magenta, chalk.cyan];
+let colorIndex = 0; // Indeks warna untuk digunakan
+
+function getNextColor() {
+  const color = colors[colorIndex];
+  colorIndex = (colorIndex + 1) % colors.length; // Ganti indeks warna
+  return color;
+}
+
 async function ambilPoinPengguna(userId) {
   try {
     const { data, error } = await supabase
@@ -31,7 +41,7 @@ async function ambilPoinPengguna(userId) {
 
     if (error) throw error;
 
-    return data || { total_poin: 0, POIN_UPDATE: 0 };
+    return data || { total_poin: 0, poin_hari_ini: 0 };
   } catch (error) {
     console.error(chalk.red('Gagal mengambil poin pengguna:'), error.message);
     return { total_poin: 0, poin_hari_ini: 0 };
@@ -43,7 +53,7 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
   const socket = new WebSocket(wsUrl, {
     headers: { Authorization: `Bearer ${tokenAkses}` }
   });
-  
+
   socket.on('open', () => {
     console.log(chalk.green('WebSocket terhubung'));
     socket.send(JSON.stringify({ type: "KONEKSI" }));
@@ -66,16 +76,17 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
 
 function mulaiPembaruanPoin(socket, poinAwal) {
   let poin = poinAwal;
-  
+
   setInterval(() => {
     const poinBaruHariIni = poin.poin_hari_ini + Math.floor(Math.random() * 5);
     const poinTotalBaru = poin.total_poin + (poinBaruHariIni - poin.poin_hari_ini);
 
     poin = { total_poin: poinTotalBaru, poin_hari_ini: poinBaruHariIni };
 
-    console.log(chalk.cyan('POIN UPDATE:'));
-    console.log(chalk.magenta('Total poin:'), poinTotalBaru);
-    console.log(chalk.magenta('Poin hari ini:'), poinBaruHariIni);
+    // Ambil warna berikutnya
+    const color = getNextColor();
+
+    console.log(color(`POINT UPDATE | TOTAL POINT DAILY: ${poinBaruHariIni} | POINT UPDATE: ${poin.poin_hari_ini} | ALL POINT: ${poinTotalBaru}`));
 
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
@@ -90,7 +101,7 @@ function mulaiPembaruanPoin(socket, poinAwal) {
 async function jalankanProgram() {
   try {
     console.log(chalk.blue('Menggunakan token akses untuk autentikasi...'));
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: process.env.SUPABASE_USER_EMAIL,
       password: process.env.SUPABASE_USER_PASSWORD,
