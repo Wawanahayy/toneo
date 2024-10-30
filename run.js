@@ -78,8 +78,8 @@ function mulaiPembaruanPoin(socket, poinAwal) {
   let poin = poinAwal;
 
   setInterval(() => {
-    const poinBaruHariIni = poin.poin_hari_ini + Math.floor(Math.random() * 5);
-    const poinTotalBaru = poin.total_poin + (poinBaruHariIni - poin.poin_hari_ini);
+    const poinBaruHariIni = Math.floor(Math.random() * 5); // Ambil nilai poin baru secara acak
+    const poinTotalBaru = poin.total_poin + poinBaruHariIni;
 
     poin = { total_poin: poinTotalBaru, poin_hari_ini: poinBaruHariIni };
 
