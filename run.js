@@ -114,9 +114,9 @@ async function jalankanProgram() {
     setInterval(() => {
       const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
       console.log(getNextColor()(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${timestamp}`));
-    }, 300000); // 300000 ms = 5 menit
+    }, 30000); // 300000 ms = 5 menit
 
-    // Refresh session setiap 30 menit
+    
     setInterval(async () => {
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
@@ -125,7 +125,7 @@ async function jalankanProgram() {
         console.log(chalk.green('Sesi diperbarui. Token akses baru:'), refreshData.session.access_token);
         supabase.auth.setSession(refreshData.session);
       }
-    }, 1800000); // 1800000 ms = 30 menit
+    }, 180000); 
 
   } catch (error) {
     console.error(chalk.red('Kesalahan:'), error.message);
