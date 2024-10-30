@@ -43,10 +43,10 @@ async function ambilPoinPengguna(userId) {
 
     if (error) throw error;
 
-    return data || { total_poin: 0, poin_hari_ini: 0 };
+    return data || { total_poin: 0, poin_UPDATE: 0 };
   } catch (error) {
     console.error(chalk.red('Gagal mengambil poin pengguna:'), error.message);
-    return { total_poin: 0, poin_hari_ini: 0 };
+    return { total_poin: 0, poin_UPDATE: 0 };
   }
 }
 
@@ -108,7 +108,7 @@ async function jalankanProgram() {
 
     const poinPengguna = await ambilPoinPengguna(data.user.id);
     totalPoints = poinPengguna.total_poin;
-    pointsToday = poinPengguna.poin_hari_ini; // Menyimpan poin harian
+    pointsToday = poinPengguna.poin_UPDATE; // Menyimpan poin harian
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
 
     // Print pembaruan poin setiap 5 menit
@@ -120,7 +120,8 @@ async function jalankanProgram() {
     // Kedipkan warna setiap 5 detik dengan poin harian
     setInterval(() => {
       const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-      console.log(getNextColor()(`KEDIP KEDIP... | POINT DAILY: ${pointsToday} | JAM: ${timestamp}`));
+      const message = `KEDIP KEDIP... | POINT DAILY: ${pointsToday} | JAM: ${timestamp}`;
+      console.log(getNextColor()(message)); // Tampilkan kedip-kedip dengan warna yang berbeda
     }, 5000); // 5000 ms = 5 detik
 
     // Cek apakah WebSocket terhubung setiap 5 menit
@@ -141,7 +142,7 @@ async function jalankanProgram() {
         console.log(chalk.green('Sesi diperbarui. Token akses baru:'), refreshData.session.access_token);
         supabase.auth.setSession(refreshData.session);
       }
-    }, 180000); // 1800000 ms = 30 menit
+    }, 1800000); // 1800000 ms = 30 menit
 
   } catch (error) {
     console.error(chalk.red('Kesalahan:'), error.message);
