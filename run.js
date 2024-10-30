@@ -16,22 +16,33 @@ exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs
   console.log(stdout);
 });
 
-console.log(chalk.blue('SUPABASE_URL:'), chalk.green(process.env.SUPABASE_URL));
-console.log(chalk.blue('SUPABASE_KEY (10 karakter pertama):'), chalk.green(process.env.SUPABASE_KEY.substring(0, 10)));
-
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-const colors = [chalk.red, chalk.green, chalk.yellow, chalk.blue, chalk.magenta, chalk.cyan];
-let colorIndex = 0;
-
-function getNextColor() {
-  const color = colors[colorIndex];
-  colorIndex = (colorIndex + 1) % colors.length;
-  return color;
-}
 
 let totalPoints = 0;
 let pointsToday = 0;
+
+// Daftar kode warna ANSI
+const colors = [
+  '\x1b[31m', // Merah
+  '\x1b[32m', // Hijau
+  '\x1b[33m', // Kuning
+  '\x1b[34m', // Biru
+  '\x1b[35m', // Magenta
+  '\x1b[36m'  // Cyan
+];
+
+function kedipKedipPesan(pesan, duration) {
+  let colorIndex = 0;
+  const blinkInterval = setInterval(() => {
+    process.stdout.write(`\x1b[5m${colors[colorIndex % colors.length]}${pesan}\x1b[0m\r`);
+    colorIndex++;
+  }, 200); // Ganti warna setiap 0.2 detik
+
+  setTimeout(() => {
+    clearInterval(blinkInterval);
+    console.log('\x1b[0m'); // Reset warna dan gaya teks setelah 10 detik
+  }, duration);
+}
 
 async function ambilPoinPengguna(userId) {
   try {
@@ -107,10 +118,11 @@ async function jalankanProgram() {
     totalPoints = poinPengguna.total_poin;
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
 
-    // Print pembaruan poin setiap 10 detik
+    // Print pembaruan poin berkedip setiap 10 detik
     setInterval(() => {
       const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-      console.log(getNextColor()(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | TOTAL POINT: ${totalPoints} | JAM: ${timestamp}`));
+      const pesan = `POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | TOTAL POINT: ${totalPoints} | JAM: ${timestamp}`;
+      kedipKedipPesan(pesan, 10000); // Berkedip selama 10 detik
     }, 10000); // 10000 ms = 10 detik
 
     // Cek status WebSocket setiap 5 menit
@@ -122,7 +134,7 @@ async function jalankanProgram() {
       }
     }, 300000); // 300000 ms = 5 menit
 
-    // Refresh session setiap 30 menit
+ 
     setInterval(async () => {
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
@@ -131,7 +143,7 @@ async function jalankanProgram() {
         console.log(chalk.green('Sesi diperbarui. Token akses berhasil'));
         supabase.auth.setSession(refreshData.session);
       }
-    }, 950000); // 1800000 ms = 30 menit
+    }, 950000); t
 
   } catch (error) {
     console.error(chalk.red('Kesalahan:'), error.message);
