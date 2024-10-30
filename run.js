@@ -21,33 +21,33 @@ console.log(chalk.blue('SUPABASE_KEY (10 karakter pertama):'), chalk.green(proce
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Array warna
 const colors = [chalk.red, chalk.green, chalk.yellow, chalk.blue, chalk.magenta, chalk.cyan];
-let colorIndex = 0; // Indeks warna untuk digunakan
-let currentColor = chalk.white; // Warna saat ini untuk menampilkan
+let colorIndex = 0;
 
-// Variabel untuk menyimpan total poin
-let totalPoints = 0;
-let pointsToday = 0; // Menyimpan poin hari ini
-let isWebSocketConnected = false; // Status koneksi WebSocket
-
-function ambilPoinDariData(parsedData) {
-  pointsToday = parsedData.pointsToday; // Update poin hari ini
-  totalPoints = parsedData.pointsTotal; // Update total poin
+function getNextColor() {
+  const color = colors[colorIndex];
+  colorIndex = (colorIndex + 1) % colors.length;
+  return color;
 }
 
-function formatTimestamp(date) {
-  const options = {
-    timeZone: 'Asia/Jakarta', // Mengatur zona waktu ke GMT+7
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  };
-  return new Intl.DateTimeFormat('id-ID', options).format(date).replace(',', ''); // Format timestamp
+let totalPoints = 0;
+let pointsToday = 0;
+
+async function ambilPoinPengguna(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('user_points')
+      .select('total_poin, poin_UPDATE')
+      .eq('id_pengguna', userId)
+      .single();
+
+    if (error) throw error;
+
+    return data || { total_poin: 0, poin_hari_ini: 0 };
+  } catch (error) {
+    console.error(chalk.red('Gagal mengambil poin pengguna:'), error.message);
+    return { total_poin: 0, poin_hari_ini: 0 };
+  }
 }
 
 function buatKoneksiWebSocket(userId, tokenAkses) {
@@ -58,23 +58,28 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
 
   socket.on('open', () => {
     console.log(chalk.green('WebSocket terhubung'));
-    isWebSocketConnected = true; // Set status koneksi
     socket.send(JSON.stringify({ type: "KONEKSI" }));
   });
 
   socket.on('message', (data) => {
     const parsedData = JSON.parse(data.toString());
-    ambilPoinDariData(parsedData); // Ambil poin dari data WebSocket
+    if (parsedData.pointsTotal !== undefined) {
+      totalPoints = parsedData.pointsTotal;
+      pointsToday = parsedData.pointsToday;
+      console.log(getNextColor()(`Diterima pembaruan poin: ${pointsToday} | Total poin: ${totalPoints}`));
+    }
   });
 
   socket.on('error', (error) => {
     console.error(chalk.red('WebSocket error:'), error);
-    isWebSocketConnected = false; // Set status koneksi
   });
 
   socket.on('close', (code, reason) => {
     console.log(chalk.red('WebSocket ditutup:'), code, reason);
-    isWebSocketConnected = false; // Set status koneksi
+    setTimeout(() => {
+      console.log(chalk.yellow('Mencoba untuk menyambung kembali...'));
+      buatKoneksiWebSocket(userId, tokenAkses);
+    }, 5000); // Coba sambung kembali setelah 5 detik
   });
 
   return socket;
@@ -93,42 +98,46 @@ async function jalankanProgram() {
 
     const session = data.session;
     console.log(chalk.green('Autentikasi berhasil'));
-    console.log(chalk.green('Token Akses:'), session.access_token);
-    console.log(chalk.green('Token Penyegaran:'), session.refresh_token);
+    console.log(chalk.green('Token Akses success')); // Tampilkan pesan sukses
 
     supabase.auth.setSession({
       access_token: session.access_token,
       refresh_token: session.refresh_token
     });
 
-    // Mulai koneksi WebSocket
+    const poinPengguna = await ambilPoinPengguna(data.user.id);
+    totalPoints = poinPengguna.total_poin;
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
-    
-    // Cetak setiap 5 menit
+
+    // Print pembaruan poin setiap 5 menit
     setInterval(() => {
-      const jam = formatTimestamp(new Date()); // Ambil timestamp saat ini
-      if (isWebSocketConnected) {
-        console.log(currentColor(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${jam}`));
+      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
+      console.log(getNextColor()(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${timestamp}`));
+    }, 300000); // 300000 ms = 5 menit
+
+    // Cek apakah WebSocket terhubung setiap 5 menit
+    setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) {
+        console.log(chalk.green('WebSocket masih terhubung'));
       } else {
-        console.log(chalk.red(`WebSocket tidak terhubung. JAM: ${jam}`));
+        console.log(chalk.red('WebSocket tidak terhubung'));
       }
     }, 300000); // 300000 ms = 5 menit
 
-    // Menjalankan interval untuk memperbarui sesi
+    // Refresh session setiap 30 menit
     setInterval(async () => {
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
         console.error(chalk.red('Error memperbarui sesi:'), refreshError);
       } else {
-        console.log(chalk.green('Sesi diperbarui. Token akses baru:'), refreshData.session.access_token);
+        console.log(chalk.green('Sesi diperbarui. Token akses success')); // Tampilkan pesan sukses
         supabase.auth.setSession(refreshData.session);
       }
-    }, 18000000); 
+    }, 180000); 
 
   } catch (error) {
     console.error(chalk.red('Kesalahan:'), error.message);
   }
 }
 
-// Jalankan program
 jalankanProgram();
