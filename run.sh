@@ -25,13 +25,13 @@ async function ambilPoinPengguna(userId) {
   try {
     const { data, error } = await supabase
       .from('user_points')
-      .select('total_poin, poin_hari_ini')
+      .select('total_poin, poin_UPDATE')
       .eq('id_pengguna', userId)
       .single();
 
     if (error) throw error;
 
-    return data || { total_poin: 0, poin_hari_ini: 0 };
+    return data || { total_poin: 0, POIN_UPDATE: 0 };
   } catch (error) {
     console.error(chalk.red('Gagal mengambil poin pengguna:'), error.message);
     return { total_poin: 0, poin_hari_ini: 0 };
