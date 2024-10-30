@@ -16,12 +16,7 @@ exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs
   console.log(stdout);
 });
 
-console.log(chalk.blue('SUPABASE_URL:'), chalk.green(process.env.SUPABASE_URL));
-console.log(chalk.blue('SUPABASE_KEY (10 karakter pertama):'), chalk.green(process.env.SUPABASE_KEY.substring(0, 10)));
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-const colors = [chalk.red, chalk.green, chalk.yellow, chalk.blue, chalk.magenta, chalk.cyan];
+const colors = [chalk.redBright, chalk.greenBright, chalk.yellowBright, chalk.blueBright, chalk.magentaBright, chalk.cyanBright];
 let colorIndex = 0;
 
 function getNextColor() {
@@ -29,6 +24,20 @@ function getNextColor() {
   colorIndex = (colorIndex + 1) % colors.length;
   return color;
 }
+
+function blinkLog(message) {
+  let count = 0;
+  const interval = setInterval(() => {
+    console.log(getNextColor()(message));
+    count += 1;
+    if (count >= 10) clearInterval(interval); // Menghentikan kedipan setelah 10 kali
+  }, 200);
+}
+
+console.log(getNextColor()('SUPABASE_URL:'), getNextColor()(process.env.SUPABASE_URL));
+console.log(getNextColor()('SUPABASE_KEY (10 karakter pertama):'), getNextColor()(process.env.SUPABASE_KEY.substring(0, 10)));
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 let totalPoints = 0;
 let pointsToday = 0;
@@ -43,10 +52,10 @@ async function ambilPoinPengguna(userId) {
 
     if (error) throw error;
 
-    return data || { total_poin: 0, poin_UPDATE: 0 };
+    return data || { total_poin: 0, poin_hari_ini: 0 };
   } catch (error) {
-    console.error(chalk.red('Gagal mengambil poin pengguna:'), error.message);
-    return { total_poin: 0, poin_UPDATE: 0 };
+    blinkLog(`Gagal mengambil poin pengguna: ${error.message}`);
+    return { total_poin: 0, poin_hari_ini: 0 };
   }
 }
 
@@ -57,7 +66,7 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
   });
 
   socket.on('open', () => {
-    console.log(chalk.green('WebSocket terhubung'));
+    blinkLog('WebSocket terhubung');
     socket.send(JSON.stringify({ type: "KONEKSI" }));
   });
 
@@ -66,18 +75,18 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
     if (parsedData.pointsTotal !== undefined) {
       totalPoints = parsedData.pointsTotal;
       pointsToday = parsedData.pointsToday;
-      console.log(getNextColor()(`Diterima pembaruan poin: ${pointsToday} | Total poin: ${totalPoints}`));
+      blinkLog(`Diterima pembaruan poin: ${pointsToday} | Total poin: ${totalPoints}`);
     }
   });
 
   socket.on('error', (error) => {
-    console.error(chalk.red('WebSocket error:'), error);
+    blinkLog(`WebSocket error: ${error}`);
   });
 
   socket.on('close', (code, reason) => {
-    console.log(chalk.red('WebSocket ditutup:'), code, reason);
+    blinkLog(`WebSocket ditutup: ${code}, ${reason}`);
     setTimeout(() => {
-      console.log(chalk.yellow('Mencoba untuk menyambung kembali...'));
+      blinkLog('Mencoba untuk menyambung kembali...');
       buatKoneksiWebSocket(userId, tokenAkses);
     }, 5000); // Coba sambung kembali setelah 5 detik
   });
@@ -87,7 +96,7 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
 
 async function jalankanProgram() {
   try {
-    console.log(chalk.blue('Menggunakan token akses untuk autentikasi...'));
+    blinkLog('Menggunakan token akses untuk autentikasi...');
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: process.env.SUPABASE_USER_EMAIL,
@@ -97,9 +106,8 @@ async function jalankanProgram() {
     if (error) throw error;
 
     const session = data.session;
-    console.log(chalk.green('Autentikasi berhasil'));
-    console.log(chalk.green('Token Akses:'), session.access_token);
-    console.log(chalk.green('Token Penyegaran:'), session.refresh_token);
+    blinkLog('Autentikasi berhasil');
+    blinkLog('Token Akses success');
 
     supabase.auth.setSession({
       access_token: session.access_token,
@@ -108,44 +116,33 @@ async function jalankanProgram() {
 
     const poinPengguna = await ambilPoinPengguna(data.user.id);
     totalPoints = poinPengguna.total_poin;
-    pointsToday = poinPengguna.poin_UPDATE; // Menyimpan poin harian
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
 
-    // Print pembaruan poin setiap 5 menit
     setInterval(() => {
       const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-      console.log(getNextColor()(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${timestamp}`));
+      blinkLog(`POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | POINT UPDATE: ${pointsToday} | ALL POINT: ${totalPoints} | JAM: ${timestamp}`);
     }, 300000); // 300000 ms = 5 menit
 
-    // Kedipkan warna setiap 5 detik dengan poin harian
-    setInterval(() => {
-      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-      const message = `KEDIP KEDIP... | POINT DAILY: ${pointsToday} | JAM: ${timestamp}`;
-      console.log(getNextColor()(message)); // Tampilkan kedip-kedip dengan warna yang berbeda
-    }, 5000); // 5000 ms = 5 detik
-
-    // Cek apakah WebSocket terhubung setiap 5 menit
     setInterval(() => {
       if (socket.readyState === WebSocket.OPEN) {
-        console.log(chalk.green('WebSocket masih terhubung'));
+        blinkLog('WebSocket masih terhubung');
       } else {
-        console.log(chalk.red('WebSocket tidak terhubung'));
+        blinkLog('WebSocket tidak terhubung');
       }
     }, 300000); // 300000 ms = 5 menit
 
-    // Refresh session setiap 30 menit
     setInterval(async () => {
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
-        console.error(chalk.red('Error memperbarui sesi:'), refreshError);
+        blinkLog(`Error memperbarui sesi: ${refreshError.message}`);
       } else {
-        console.log(chalk.green('Sesi diperbarui. Token akses baru:'), refreshData.session.access_token);
+        blinkLog('Sesi diperbarui. Token akses success');
         supabase.auth.setSession(refreshData.session);
       }
-    }, 1800000); // 1800000 ms = 30 menit
+    }, 180000); 
 
   } catch (error) {
-    console.error(chalk.red('Kesalahan:'), error.message);
+    blinkLog(`Kesalahan: ${error.message}`);
   }
 }
 
