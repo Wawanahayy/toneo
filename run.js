@@ -31,6 +31,9 @@ function getNextColor() {
   return color;
 }
 
+// Variabel untuk menyimpan total poin
+let totalPoints = 0;
+
 async function ambilPoinPengguna(userId) {
   try {
     const { data, error } = await supabase
@@ -60,7 +63,12 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
   });
 
   socket.on('message', (data) => {
-    console.log(chalk.yellow('Pesan diterima:'), data.toString());
+    const parsedData = JSON.parse(data.toString());
+    console.log(chalk.yellow('Pesan diterima:'), parsedData);
+
+    // Update total poin dari pesan WebSocket
+    totalPoints = parsedData.pointsTotal; // Memperbarui total poin
+    console.log(chalk.green(`Total Poin Diperbarui: ${totalPoints}`));
   });
 
   socket.on('error', (error) => {
@@ -75,27 +83,24 @@ function buatKoneksiWebSocket(userId, tokenAkses) {
 }
 
 function mulaiPembaruanPoin(socket, poinAwal) {
-  let poin = {
-    total_poin: poinAwal.total_poin || 0,
-    poin_hari_ini: 0 // Mulai dari 0 setiap hari
-  };
+  let poin = poinAwal;
 
   setInterval(() => {
-    // Menghitung poin baru hari ini
-    const poinBaruHariIni = Math.floor(Math.random() * 5); // Simulasi tambahan poin
-    poin.poin_hari_ini += poinBaruHariIni; // Tambahkan poin baru ke hari ini
-    poin.total_poin += poinBaruHariIni; // Tambahkan poin baru ke total poin
+    const poinBaruHariIni = poin.poin_hari_ini + Math.floor(Math.random() * 5);
+    const poinTotalBaru = totalPoints + (poinBaruHariIni - poin.poin_hari_ini); // Menggunakan totalPoints
+
+    poin = { total_poin: poinTotalBaru, poin_hari_ini: poinBaruHariIni };
 
     // Ambil warna berikutnya
     const color = getNextColor();
 
-    console.log(color(`POINT UPDATE | TOTAL POINT DAILY: ${poin.poin_hari_ini} | POINT UPDATE: ${poinBaruHariIni} | ALL POINT: ${poin.total_poin}`));
+    console.log(color(`POINT UPDATE | TOTAL POINT DAILY: ${poinBaruHariIni} | POINT UPDATE: ${poin.poin_hari_ini} | ALL POINT: ${poinTotalBaru}`));
 
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         type: "UPDATE_POINTS",
-        pointsTotal: poin.total_poin,
-        pointsToday: poin.poin_hari_ini
+        pointsTotal: poinTotalBaru,
+        pointsToday: poinBaruHariIni
       }));
     }
   }, 60000);
@@ -123,10 +128,10 @@ async function jalankanProgram() {
     });
 
     const poinPengguna = await ambilPoinPengguna(data.user.id);
+    totalPoints = poinPengguna.total_poin; // Inisialisasi total poin dari database
     const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
     mulaiPembaruanPoin(socket, poinPengguna);
     
-    // Bagian untuk refresh session
     setInterval(async () => {
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
