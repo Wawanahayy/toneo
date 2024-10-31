@@ -47,6 +47,17 @@ async function getConfig() {
   }
 }
 
+// Fungsi untuk menyimpan data ke localStorage
+async function setLocalStorage(data) {
+  try {
+    const localStorageData = await getLocalStorage();
+    const updatedData = { ...localStorageData, ...data };
+    await writeFileAsync('localStorage.json', JSON.stringify(updatedData, null, 2));
+  } catch (error) {
+    console.error("Error setting local storage:", error);
+  }
+}
+
 async function connectWebSocket(userId, proxy) {
   if (socket) return;
   const version = "v0.2";
