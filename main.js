@@ -8,11 +8,10 @@ const { exec } = require('child_process');
 let socket = null;
 let pingInterval;
 let countdownInterval;
-let potentialPoints = 0;
-let countdown = "Calculating...";
-let pointsTotal = 0;
+let totalPoints = 0;
 let pointsToday = 0;
 
+// Fungsi untuk menampilkan header
 function displayHeader() {
   exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
     if (error) {
@@ -58,14 +57,13 @@ async function getConfig() {
   }
 }
 
-async function connectWebSocket(userId, proxy) {
-  if (socket) return;
+// Fungsi untuk membuat koneksi WebSocket
+async function connectWebSocket(userId, tokenAkses, proxy) {
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
   const options = {};
-  // Hanya tambahkan proxy jika ada
   if (proxy) {
     options.agent = new HttpsProxyAgent(proxy);
   }
@@ -76,8 +74,9 @@ async function connectWebSocket(userId, proxy) {
     const connectionTime = new Date().toISOString();
     await setLocalStorage({ lastUpdated: connectionTime });
     console.log("WebSocket connected at", connectionTime);
-    startPinging(); // Memanggil fungsi startPinging
-    startCountdownAndPoints(); // Memanggil fungsi startCountdownAndPoints
+    startPinging();
+    startCountdownAndPoints();
+    socket.send(JSON.stringify({ type: "KONEKSI" }));
   };
 
   socket.onmessage = async (event) => {
@@ -90,15 +89,15 @@ async function connectWebSocket(userId, proxy) {
         pointsTotal: data.pointsTotal,
         pointsToday: data.pointsToday,
       });
-      pointsTotal = data.pointsTotal;
+      totalPoints = data.pointsTotal;
       pointsToday = data.pointsToday;
     }
   };
 
   socket.onclose = () => {
-    socket = null;
     console.log("WebSocket disconnected");
-    stopPinging(); // Memanggil fungsi stopPinging
+    stopPinging();
+    setTimeout(() => connectWebSocket(userId, tokenAkses, proxy), 10000); // Coba sambung kembali setelah 10 detik
   };
 
   socket.onerror = (error) => {
@@ -113,7 +112,7 @@ function startPinging() {
       socket.send(JSON.stringify({ type: "ping" })); // Kirim ping ke server
       console.log("Ping sent to server");
     }
-  }, 30000); // Kirim ping setiap 30 detik (30000 ms)
+  }, 30000); // Kirim ping setiap 30 detik
 }
 
 function stopPinging() {
@@ -124,7 +123,6 @@ function stopPinging() {
 }
 
 function startCountdownAndPoints() {
-  // Misalnya, mulai dengan 60 detik
   let secondsLeft = 60;
   countdownInterval = setInterval(() => {
     if (secondsLeft > 0) {
@@ -133,13 +131,12 @@ function startCountdownAndPoints() {
     } else {
       clearInterval(countdownInterval);
       console.log("Countdown finished");
-      // Lakukan tindakan yang diinginkan setelah countdown selesai, seperti mengupdate poin atau lainnya
+      // Lakukan tindakan yang diinginkan setelah countdown selesai
     }
   }, 1000); // Mengupdate setiap detik
 }
 
 async function initialize() {
-  // Menampilkan header sebelum melanjutkan
   displayHeader();
 
   const localStorageData = await getLocalStorage();
@@ -149,7 +146,23 @@ async function initialize() {
   const userId = localStorageData.userId || configData.userId || prompt('Please enter your User ID: ');
   const proxy = configData.proxy || ""; // Mengambil proxy dari config.json atau gunakan string kosong jika tidak ada
 
-  await connectWebSocket(userId, proxy);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: process.env.SUPABASE_USER_EMAIL,
+    password: process.env.SUPABASE_USER_PASSWORD,
+  });
+
+  if (error) throw error;
+
+  const session = data.session;
+  console.log("Autentikasi berhasil");
+  console.log("Token Akses berhasil");
+
+  supabase.auth.setSession({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token
+  });
+
+  await connectWebSocket(userId, session.access_token, proxy);
 }
 
 initialize();
