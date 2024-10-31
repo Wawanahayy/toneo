@@ -76,7 +76,7 @@ async function connectWebSocket(userId, proxy) {
     const connectionTime = new Date().toISOString();
     await setLocalStorage({ lastUpdated: connectionTime });
     console.log("WebSocket connected at", connectionTime);
-    startPinging();
+    startPinging(); // Memanggil fungsi startPinging
     startCountdownAndPoints();
   };
 
@@ -98,12 +98,29 @@ async function connectWebSocket(userId, proxy) {
   socket.onclose = () => {
     socket = null;
     console.log("WebSocket disconnected");
-    stopPinging();
+    stopPinging(); // Memanggil fungsi stopPinging
   };
 
   socket.onerror = (error) => {
     console.error("WebSocket error:", error);
   };
+}
+
+function startPinging() {
+  if (pingInterval) return; // Jangan mulai lagi jika sudah berjalan
+  pingInterval = setInterval(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "ping" })); // Kirim ping ke server
+      console.log("Ping sent to server");
+    }
+  }, 30000); // Kirim ping setiap 30 detik (30000 ms)
+}
+
+function stopPinging() {
+  if (pingInterval) {
+    clearInterval(pingInterval);
+    pingInterval = null; // Reset interval ping
+  }
 }
 
 async function initialize() {
