@@ -4,6 +4,7 @@ const fs = require('fs');
 const axios = require('axios');
 const HttpsProxyAgent = require('https-proxy-agent');
 const { exec } = require('child_process');
+const readline = require('readline'); // Untuk input pengguna
 
 let socket = null;
 let pingInterval;
@@ -47,17 +48,7 @@ async function getConfig() {
   }
 }
 
-// Fungsi untuk menyimpan data ke localStorage
-async function setLocalStorage(data) {
-  try {
-    const localStorageData = await getLocalStorage();
-    const updatedData = { ...localStorageData, ...data };
-    await writeFileAsync('localStorage.json', JSON.stringify(updatedData, null, 2));
-  } catch (error) {
-    console.error("Error setting local storage:", error);
-  }
-}
-
+// Fungsi untuk menghubungkan WebSocket
 async function connectWebSocket(userId, proxy) {
   if (socket) return;
   const version = "v0.2";
@@ -77,7 +68,7 @@ async function connectWebSocket(userId, proxy) {
     await setLocalStorage({ lastUpdated: connectionTime });
     console.log("WebSocket connected at", connectionTime);
     startPinging();
-    startCountdownAndPoints();
+    startCountdownAndPoints(); // Pastikan fungsi ini juga sudah didefinisikan
   };
 
   socket.onmessage = async (event) => {
@@ -106,6 +97,36 @@ async function connectWebSocket(userId, proxy) {
   };
 }
 
+// Fungsi untuk mengirim ping secara berkala
+function startPinging() {
+  pingInterval = setInterval(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'ping' }));
+      console.log("Ping sent");
+    }
+  }, 30000); // Mengirim ping setiap 30 detik
+}
+
+function stopPinging() {
+  clearInterval(pingInterval);
+}
+
+// Fungsi untuk mendapatkan input dari pengguna
+function getUserIdFromInput(prompt) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
+// Fungsi untuk inisialisasi
 async function initialize() {
   // Menampilkan header sebelum melanjutkan
   displayHeader();
@@ -114,7 +135,7 @@ async function initialize() {
   console.log("Local Storage Data:", localStorageData);
 
   const configData = await getConfig();
-  const userId = localStorageData.userId || configData.userId || prompt('Please enter your User ID: ');
+  const userId = localStorageData.userId || configData.userId || await getUserIdFromInput('Please enter your User ID: ');
   const proxy = configData.proxy || ""; // Mengambil proxy dari config.json atau gunakan string kosong jika tidak ada
 
   await connectWebSocket(userId, proxy);
