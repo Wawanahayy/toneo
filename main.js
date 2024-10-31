@@ -4,7 +4,7 @@ const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
 const HttpsProxyAgent = require('https-proxy-agent');
-const { exec } = require('child_process'); // Impor exec untuk menjalankan perintah shell
+const { exec } = require('child_process');
 
 let socket = null;
 let pingInterval;
@@ -108,8 +108,17 @@ async function initialize() {
   const localStorageData = await getLocalStorage();
   console.log("Local Storage Data:", localStorageData);
 
-  const userId = localStorageData.userId || prompt('Please enter your User ID: ');
-  const proxy = localStorageData.proxy || prompt('Please enter your proxy (or leave blank): ');
+  const userId = localStorageData.userId || await new Promise((resolve) => {
+    rl.question('Please enter your User ID: ', (answer) => {
+      resolve(answer);
+    });
+  });
+
+  const proxy = localStorageData.proxy || await new Promise((resolve) => {
+    rl.question('Please enter your proxy (or leave blank): ', (answer) => {
+      resolve(answer);
+    });
+  });
 
   await connectWebSocket(userId, proxy);
 }
