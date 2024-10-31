@@ -1,7 +1,6 @@
 const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
-const readline = require('readline');
 const axios = require('axios');
 const HttpsProxyAgent = require('https-proxy-agent');
 const { exec } = require('child_process');
@@ -27,17 +26,23 @@ function displayHeader() {
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-// Fungsi lainnya...
+// Fungsi untuk membaca file localStorage
 async function getLocalStorage() {
   try {
     const data = await readFileAsync('localStorage.json', 'utf8');
     return JSON.parse(data);
   } catch (error) {
+    return {};
+  }
+}
+
+// Fungsi untuk membaca file config.json
+async function getConfig() {
+  try {
+    const data = await readFileAsync('config.json', 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Error reading config.json:", error);
     return {};
   }
 }
@@ -49,6 +54,7 @@ async function connectWebSocket(userId, proxy) {
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
   const options = {};
+  // Hanya tambahkan proxy jika ada
   if (proxy) {
     options.agent = new HttpsProxyAgent(proxy);
   }
@@ -89,18 +95,6 @@ async function connectWebSocket(userId, proxy) {
   };
 }
 
-function disconnectWebSocket() {
-  if (socket) {
-    socket.close();
-    socket = null;
-    stopPinging();
-  }
-}
-
-// Menempatkan authorization dan apikey di sini
-const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-
 async function initialize() {
   // Menampilkan header sebelum melanjutkan
   displayHeader();
@@ -108,17 +102,9 @@ async function initialize() {
   const localStorageData = await getLocalStorage();
   console.log("Local Storage Data:", localStorageData);
 
-  const userId = localStorageData.userId || await new Promise((resolve) => {
-    rl.question('Please enter your User ID: ', (answer) => {
-      resolve(answer);
-    });
-  });
-
-  const proxy = localStorageData.proxy || await new Promise((resolve) => {
-    rl.question('Please enter your proxy (or leave blank): ', (answer) => {
-      resolve(answer);
-    });
-  });
+  const configData = await getConfig();
+  const userId = localStorageData.userId || configData.userId || prompt('Please enter your User ID: ');
+  const proxy = configData.proxy || ""; // Mengambil proxy dari config.json atau gunakan string kosong jika tidak ada
 
   await connectWebSocket(userId, proxy);
 }
