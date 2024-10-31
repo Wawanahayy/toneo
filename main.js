@@ -77,7 +77,7 @@ async function connectWebSocket(userId, proxy) {
     await setLocalStorage({ lastUpdated: connectionTime });
     console.log("WebSocket connected at", connectionTime);
     startPinging(); // Memanggil fungsi startPinging
-    startCountdownAndPoints();
+    startCountdownAndPoints(); // Memanggil fungsi startCountdownAndPoints
   };
 
   socket.onmessage = async (event) => {
@@ -121,6 +121,21 @@ function stopPinging() {
     clearInterval(pingInterval);
     pingInterval = null; // Reset interval ping
   }
+}
+
+function startCountdownAndPoints() {
+  // Misalnya, mulai dengan 60 detik
+  let secondsLeft = 60;
+  countdownInterval = setInterval(() => {
+    if (secondsLeft > 0) {
+      console.log(`Countdown: ${secondsLeft} seconds left`);
+      secondsLeft--;
+    } else {
+      clearInterval(countdownInterval);
+      console.log("Countdown finished");
+      // Lakukan tindakan yang diinginkan setelah countdown selesai, seperti mengupdate poin atau lainnya
+    }
+  }, 1000); // Mengupdate setiap detik
 }
 
 async function initialize() {
