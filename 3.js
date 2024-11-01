@@ -22,19 +22,6 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-const displayHeader = () => {
-  exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error displaying header: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Error output: ${stderr}`);
-      return;
-    }
-    console.log(stdout);
-  });
-};
 
 async function getLocalStorage() {
   try {
