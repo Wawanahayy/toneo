@@ -36,11 +36,22 @@ function getFormattedTimestamp(date) {
   return date.toLocaleString('id-ID', options).replace(', ', ' | ');
 }
 
-loading_step() {
-    echo "Mengunduh dan menjalankan skrip display..."
-    curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash
-    echo
+function loading_step() {
+  console.log("Mengunduh dan menjalankan skrip display...");
+  exec('curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`stderr: ${stderr}`);
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+  });
+  console.log();
 }
+
 
 async function getLocalStorage() {
   try {
