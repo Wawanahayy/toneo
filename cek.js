@@ -3,7 +3,6 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
-const { exec } = require('child_process');
 
 let socket = null;
 let pingInterval;
@@ -22,18 +21,19 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-const displayHeader = () => {
-  exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error displaying header: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Error output: ${stderr}`);
-      return;
-    }
-    console.log(stdout);
-  });
+const displayColoredText = () => {
+    console.log("\033[40;96m============================================================\033[0m");
+    console.log("\033[42;37m=======================  J.W.P.A  ==========================\033[0m");
+    console.log("\033[45;97m================= @AirdropJP_JawaPride =====================\033[0m");
+    console.log("\033[43;30m=============== https://x.com/JAWAPRIDE_ID =================\033[0m");
+    console.log("\033[41;97m============= https://linktr.ee/Jawa_Pride_ID ==============\033[0m");
+    console.log("\033[44;30m============================================================\033[0m");
+};
+
+// Fungsi untuk menampilkan header
+const displayHeader = async () => {
+  displayColoredText();
+  await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik
 };
 
 async function getLocalStorage() {
@@ -157,35 +157,13 @@ function formatDate(date) {
   return date.toISOString().replace('T', ' ').split('.')[0];
 }
 
-async function getUserId() {
-  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-
-  await new Promise(resolve => setTimeout(resolve, 5000)); // Tunggu selama 5 detik sebelum meminta email
-
-  rl.question('Email: ', (email) => {
-    rl.question('Password: ', async (password) => {
-      try {
-        const response = await axios.post(loginUrl, { email, password }, {
-          headers: {
-            "Authorization": authorization,
-            "apikey": apikey
-          }
-        });
-        const userId = response.data.user.id;
-        await setLocalStorage({ userId });
-        await connectWebSocket(userId);
-        rl.close();
-      } catch (error) {
-        console.error("Error during login:", error.message);
-      }
-    });
-  });
-}
-
+// Mulai aplikasi
 (async () => {
-  displayHeader();
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Tunggu 1 detik untuk memastikan tampilan muncul
-  await getUserId();
+  await displayHeader();
+  const localStorageData = await getLocalStorage();
+  if (localStorageData.userId) {
+    await connectWebSocket(localStorageData.userId);
+  } else {
+    await getUserId();
+  }
 })();
