@@ -22,6 +22,7 @@ npm install dotenv
 npm install chalk@4
 npm install ws
 npm install axios
+npm install https-proxy-agent
 
 # Run run.js
 node run.js
