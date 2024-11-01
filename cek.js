@@ -117,6 +117,7 @@ function startUpdatingClock() {
   clockInterval = setInterval(() => {
     const now = new Date();
     const formattedTime = getFormattedTimestamp(now);
+    // Optional: You can log or use formattedTime as needed here
   }, 1000);
 }
 
