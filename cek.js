@@ -3,7 +3,6 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
-const { exec } = require('child_process'); // Import exec
 
 let socket = null;
 let pingInterval;
@@ -22,23 +21,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-// Menampilkan konten display.sh menggunakan curl
-function displayContent() {
-  return new Promise((resolve, reject) => {
-    exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing display script: ${error.message}`);
-        return reject(error);
-      }
-      if (stderr) {
-        console.error(`Error output: ${stderr}`);
-        return reject(stderr);
-      }
-      console.log(stdout);
-      resolve();
-    });
-  });
-}
+
 
 // Mengambil dan menyimpan data lokal
 async function getLocalStorage() {
@@ -189,6 +172,15 @@ function elapsedTime() {
   return `${minutes}:${seconds}`;
 }
 
+
+function startCountdownAndPoints() {
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    updateCountdownAndPoints();
+    updateBlinkingColorMessage();
+  }, 1000);
+}
+
 async function updateCountdownAndPoints() {
   const { lastUpdated } = await getLocalStorage();
   // Logika perhitungan poin dan waktu...
@@ -217,7 +209,7 @@ function formatDate(date) {
 
 // Mulai aplikasi
 (async () => {
-  await displayContent(); // Menampilkan konten sebelum meminta email
+  await displayHeader();
   const localStorageData = await getLocalStorage();
   if (localStorageData.userId) {
     await connectWebSocket(localStorageData.userId);
