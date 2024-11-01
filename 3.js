@@ -157,14 +157,14 @@ function updateBlinkingColorMessage() {
   const currentTime = formatDate(new Date());
   const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
   const elapsedTime = calculateElapsedTime(); // Menghitung waktu berjalan
-  console.log(`---------------------`);
+  console.log(`------------------------------------`);
   console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}TIME RUN: ${elapsedTime}\x1b[0m`); // Menampilkan waktu berjalan
   console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
-  console.log(`---------------------`);
+  console.log(`------------------------------------`);
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
