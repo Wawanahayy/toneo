@@ -122,8 +122,10 @@ let clockInterval;
 function startUpdatingClock() {
   clockInterval = setInterval(() => {
     const now = new Date();
+    // Mengupdate jam tanpa mencetak ke konsol
     const formattedTime = getFormattedTimestamp(now);
-    // Tidak mencetak waktu ke konsol
+    // Untuk debug: Uncomment jika ingin melihat waktu berjalan di log
+    // console.log("Current Time:", formattedTime);
   }, 1000);
 }
 
@@ -247,12 +249,15 @@ async function getUserId() {
             }
           });
 
-          const personalCode = profileResponse.data[0]?.personal_code;
+          const personalCode = profileResponse.data[0]?.personal_code || 'unknown';
           console.log('Personal Code:', personalCode);
 
+          await setLocalStorage({ userId, personalCode });
           await connectWebSocket(userId);
         } catch (error) {
-          console.error('Error during login:', error);
+          console.error('Error during login or fetching user data:', error);
+        } finally {
+          rl.close();
         }
       });
     });
