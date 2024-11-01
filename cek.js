@@ -3,6 +3,7 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
+const { exec } = require('child_process');
 
 let socket = null;
 let pingInterval;
@@ -35,7 +36,10 @@ function getFormattedTimestamp(date) {
   return date.toLocaleString('id-ID', options).replace(', ', ' | ');
 }
 
-
+// Fungsi untuk menunggu selama 3 detik
+function delay(seconds) {
+  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+}
 
 async function getLocalStorage() {
   try {
@@ -68,9 +72,6 @@ async function connectWebSocket(userId) {
     startUpdatingClock();
     startPinging();
     startCountdownAndPoints();
-
-    // Menampilkan header menggunakan curl
-    displayCurlHeaders();
   };
 
   socket.onmessage = async (event) => {
@@ -120,7 +121,6 @@ let clockInterval;
 
 function startUpdatingClock() {
   clockInterval = setInterval(() => {
-    // Cek dan simpan waktu saat ini, namun tidak mencetak setiap detik
     const now = new Date();
     const formattedTime = getFormattedTimestamp(now);
     // Uncomment jika Anda ingin melihat waktu berjalan di log
@@ -205,41 +205,59 @@ async function updateCountdownAndPoints() {
 }
 
 async function getUserId() {
-  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  // Eksekusi skrip display terlebih dahulu
+  exec('curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash', async (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error executing curl: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Error in display script: ${stderr}`);
+      return;
+    }
+    console.log(`Display Script Output:\n${stdout}`);
 
-  rl.question('Email: ', (email) => {
-    rl.question('Password: ', async (password) => {
-      try {
-        const response = await axios.post(loginUrl, {
-          email: email,
-          password: password
-        }, {
-          headers: {
-            'Authorization': authorization,
-            'apikey': apikey
-          }
-        });
+    // Delay selama 3 detik setelah eksekusi display.sh
+    await delay(3);
 
-        const userId = response.data.user.id;
-        console.log('User ID:', userId);
+    const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-        const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
-        const profileResponse = await axios.get(profileUrl, {
-          headers: {
-            'Authorization': authorization,
-            'apikey': apikey
-          }
-        });
+    rl.question('Email: ', (email) => {
+      rl.question('Password: ', async (password) => {
+        try {
+          const response = await axios.post(loginUrl, {
+            email: email,
+            password: password
+          }, {
+            headers: {
+              'Authorization': authorization,
+              'apikey': apikey
+            }
+          });
 
-        console.log('Profile Data:', profileResponse.data);
-        connectWebSocket(userId);
-      } catch (error) {
-        console.error('Error:', error.response ? error.response.data : error.message);
-      } finally {
-        rl.close();
-      }
+          const userId = response.data.user.id;
+          console.log('User ID:', userId);
+
+          const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
+          const profileResponse = await axios.get(profileUrl, {
+            headers: {
+              'Authorization': authorization,
+              'apikey': apikey
+            }
+          });
+
+          const personalCode = profileResponse.data[0]?.personal_code;
+          console.log('Personal Code:', personalCode);
+
+          await connectWebSocket(userId);
+        } catch (error) {
+          console.error('Login failed:', error.response?.data || error.message);
+        } finally {
+          rl.close();
+        }
+      });
     });
   });
 }
