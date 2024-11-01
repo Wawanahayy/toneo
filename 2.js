@@ -240,7 +240,12 @@ async function getUserId() {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8XAmcDVT4AfA02roU";
 
-  const email = await getInput("Masukkan email: ");
+  // Menggunakan rl.question untuk meminta email
+  const email = await new Promise(resolve => {
+    rl.question("Masukkan email: ", resolve);
+  });
+
+  // Menggunakan questionWithHiddenInput untuk meminta kata sandi
   const password = await questionWithHiddenInput("Masukkan kata sandi: ");
   const payload = { email, password };
 
@@ -252,6 +257,7 @@ async function getUserId() {
     return null;
   }
 }
+
 
 async function main() {
   const userId = await getUserId();
