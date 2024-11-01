@@ -3,6 +3,7 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
+const { exec } = require('child_process'); // Untuk menjalankan curl
 
 let socket = null;
 let pingInterval;
@@ -35,6 +36,22 @@ function getFormattedTimestamp(date) {
   return date.toLocaleString('id-ID', options).replace(', ', ' | ');
 }
 
+// Fungsi untuk menampilkan header menggunakan curl
+function displayCurlHeaders() {
+  const curlCommand = 'curl -I https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh';
+  exec(curlCommand, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error executing curl: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Curl stderr: ${stderr}`);
+      return;
+    }
+    console.log("Headers from curl:\n", stdout);
+  });
+}
+
 async function getLocalStorage() {
   try {
     const data = await readFileAsync('localStorage.json', 'utf8');
@@ -61,9 +78,14 @@ async function connectWebSocket(userId) {
     const connectionTime = new Date();
     await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
     console.log("WebSocket connected at", connectionTime.toISOString());
-    console.log(`JAM: ${getFormattedTimestamp(connectionTime)}`);
+
+    // Menampilkan jam secara terus-menerus
+    startUpdatingClock();
     startPinging();
     startCountdownAndPoints();
+
+    // Menampilkan header menggunakan curl
+    displayCurlHeaders();
   };
 
   socket.onmessage = async (event) => {
@@ -89,6 +111,7 @@ async function connectWebSocket(userId) {
     socket = null;
     console.log("WebSocket disconnected");
     stopPinging();
+    stopUpdatingClock();
   };
 
   socket.onerror = (error) => {
@@ -101,6 +124,24 @@ function disconnectWebSocket() {
     socket.close();
     socket = null;
     stopPinging();
+    stopUpdatingClock();
+  }
+}
+
+let clockInterval;
+
+function startUpdatingClock() {
+  clockInterval = setInterval(() => {
+    const now = new Date();
+    const formattedTime = getFormattedTimestamp(now);
+    console.log(`JAM: ${formattedTime}`);
+  }, 1000);
+}
+
+function stopUpdatingClock() {
+  if (clockInterval) {
+    clearInterval(clockInterval);
+    clockInterval = null;
   }
 }
 
@@ -122,8 +163,9 @@ function stopPinging() {
 }
 
 process.on('SIGINT', () => {
-  console.log('Received SIGINT. Stopping pinging...');
+  console.log('Received SIGINT. Stopping pinging and clock...');
   stopPinging();
+  stopUpdatingClock();
   disconnectWebSocket();
   process.exit(0);
 });
@@ -206,7 +248,7 @@ async function getUserId() {
         await startCountdownAndPoints();
         await connectWebSocket(userId);
       } catch (error) {
-        console.error('Error:', error.response ? error.response.data : error.message);
+        console.error('Error fetching user ID:', error);
       } finally {
         rl.close();
       }
@@ -216,48 +258,15 @@ async function getUserId() {
 
 async function main() {
   const localStorageData = await getLocalStorage();
-  let userId = localStorageData.userId;
+  const userId = localStorageData.userId;
 
   if (!userId) {
-    rl.question('User ID not found. Would you like to:\n1. Login to your account\n2. Enter User ID manually\nChoose an option: ', async (option) => {
-      switch (option) {
-        case '1':
-          await getUserId();
-          break;
-        case '2':
-          rl.question('Please enter your user ID: ', async (inputUserId) => {
-            userId = inputUserId;
-            await setLocalStorage({ userId });
-            await startCountdownAndPoints();
-            await connectWebSocket(userId);
-            rl.close();
-          });
-          break;
-        default:
-          console.log('Invalid option. Exiting...');
-          process.exit(0);
-      }
-    });
+    console.log('No user ID found. Please log in.');
+    await getUserId();
   } else {
-    rl.question('Menu:\n1. Logout\n2. Start Running Node\nChoose an option: ', async (option) => {
-      switch (option) {
-        case '1':
-          fs.unlink('localStorage.json', (err) => {
-            if (err) throw err;
-          });
-          console.log('Logged out successfully.');
-          process.exit(0);
-          break;
-        case '2':
-          await startCountdownAndPoints();
-          await connectWebSocket(userId);
-          rl.close();
-          break;
-        default:
-          console.log('Invalid option. Exiting...');
-          process.exit(0);
-      }
-    });
+    await startCountdownAndPoints();
+    await connectWebSocket(userId);
+    rl.close();
   }
 }
 
