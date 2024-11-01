@@ -12,7 +12,7 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
-let startTime = new Date(); // Menyimpan waktu mulai
+let startTime = new Date();
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -22,26 +22,9 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-// Fungsi untuk mencetak teks berwarna
 function printColored(colorCode, text) {
     console.log(`\x1b[${colorCode}m${text}\x1b[0m`);
 }
-
-// Fungsi untuk menampilkan teks berwarna
-function displayColoredText() {
-    printColored("40;96", "============================================================");
-    printColored("42;37", "=======================  J.W.P.A  ==========================");
-    printColored("45;97", "================= @AirdropJP_JawaPride =====================");
-    printColored("43;30", "=============== https://x.com/JAWAPRIDE_ID =================");
-    printColored("41;97", "============= https://linktr.ee/Jawa_Pride_ID ==============");
-    printColored("44;30", "============================================================");
-}
-
-// Menampilkan header
-displayColoredText();
-setTimeout(() => {
-    console.clear();
-}, 5000);
 
 async function getLocalStorage() {
     try {
@@ -67,9 +50,8 @@ async function connectWebSocket(userId) {
 
     socket.onopen = async () => {
         const connectionTime = new Date();
-        const formattedConnectionTime = formatDate(connectionTime);
         await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
-        console.log("WebSocket connected at", formattedConnectionTime);
+        console.log("WebSocket connected at", formatDate(connectionTime));
         startPinging();
         startCountdownAndPoints();
         startLogUpdates();
@@ -78,9 +60,7 @@ async function connectWebSocket(userId) {
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data);
         const messageTime = new Date(data.date);
-        const formattedMessageTime = formatDate(messageTime);
-        
-        data.DATE = formattedMessageTime;
+        data.DATE = formatDate(messageTime);
         console.log(`Received message from WebSocket:`, {
             ...data,
             currentTime: formatDate(new Date())
@@ -159,32 +139,27 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
-let currentColorIndex = 0;
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m'];
-
-
 function getTimeRunning() {
     const now = new Date();
     const diff = now - startTime; 
     const minutes = Math.floor(diff / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; // Format MM:SS
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function updateBlinkingColorMessage() {
     console.clear(); 
     const currentTime = formatDate(new Date());
     const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
-    const timeRunning = getTimeRunning(); // Dapatkan waktu berjalan
+    const timeRunning = getTimeRunning();
     console.log(`---------------------`);
-    console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}TIME RUN: ${timeRunning}\x1b[0m`); // Tampilkan waktu berjalan
+    console.log(`Waktu Saat Ini: ${currentTime}`); 
+    console.log(`Poin Hari Ini: ${pointsToday}`); 
+    console.log(`Total Poin: ${pointsTotal}`); 
+    console.log(`Websocket: ${websocketStatus}`); 
+    console.log(`FOLLOW TG: @AirdropJP_JawaPride`); 
+    console.log(`TIME RUN: ${timeRunning}`); 
     console.log(`---------------------`);
-    currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
 function startCountdownAndPoints() {
@@ -236,7 +211,6 @@ function formatDate(date) {
     const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
     return date.toLocaleString('en-US', options).replace(',', '');
 }
-
 
 rl.question("Masukkan userId: ", (userId) => {
     connectWebSocket(userId);
