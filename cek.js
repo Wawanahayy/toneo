@@ -12,7 +12,7 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
-let colorBlinkInterval; // Interval untuk kedip warna
+let blinkingColorInterval; // Tambahkan interval untuk warna berkedip
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -58,7 +58,7 @@ async function connectWebSocket(userId) {
     startPinging();
     startCountdownAndPoints();
     startLogUpdates(); // Mulai mencetak log setiap 5 menit
-    startColorBlink(); // Mulai warna berkedip
+    startBlinkingColorMessage(); // Mulai memperbarui pesan berkedip
   };
 
   socket.onmessage = async (event) => {
@@ -92,7 +92,7 @@ async function connectWebSocket(userId) {
     console.log("WebSocket disconnected");
     stopPinging();
     stopLogUpdates(); // Hentikan pencetakan log saat WebSocket terputus
-    stopColorBlink(); // Hentikan kedip warna saat WebSocket terputus
+    stopBlinkingColorMessage(); // Hentikan pesan berkedip saat WebSocket terputus
   };
 
   socket.onerror = (error) => {
@@ -106,7 +106,7 @@ function disconnectWebSocket() {
     socket = null;
     stopPinging();
     stopLogUpdates(); // Hentikan pencetakan log saat terputus
-    stopColorBlink(); // Hentikan kedip warna saat terputus
+    stopBlinkingColorMessage(); // Hentikan pesan berkedip saat terputus
   }
 }
 
@@ -142,31 +142,12 @@ function stopLogUpdates() {
   }
 }
 
-function startColorBlink() {
-  stopColorBlink();
-  let isRed = false; // Flag untuk warna yang digunakan
-  colorBlinkInterval = setInterval(() => {
-    const color = isRed ? "\x1b[31m" : "\x1b[32m"; // Merah dan hijau
-    process.stdout.write(`${color}Blinking Color!\x1b[0m\r`); // Menampilkan teks dengan warna
-    isRed = !isRed; // Ubah warna
-  }, 1000); // Ubah warna setiap 1 detik
-}
-
-function stopColorBlink() {
-  if (colorBlinkInterval) {
-    clearInterval(colorBlinkInterval);
-    colorBlinkInterval = null;
-    process.stdout.write(`\x1b[0m`); // Reset warna
-    console.log(''); // Pindah ke baris baru
-  }
-}
-
 process.on('SIGINT', () => {
   console.log('Received SIGINT. Stopping pinging and log updates...');
   stopPinging();
   stopLogUpdates(); // Hentikan log saat menerima SIGINT
-  stopColorBlink(); // Hentikan kedip warna
   disconnectWebSocket();
+  stopBlinkingColorMessage(); // Hentikan berkedip saat menerima SIGINT
   process.exit(0);
 });
 
@@ -219,36 +200,65 @@ async function getUserId() {
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  rl.question('Enter your username: ', async (username) => {
-    rl.question('Enter your password: ', async (password) => {
-      const response = await axios.post(loginUrl, {
-        email: username,
-        password: password
-      }, {
-        headers: {
-          'Authorization': authorization,
-          'apikey': apikey
-        }
-      });
+  rl.question('Email: ', (email) => {
+    rl.question('Password: ', async (password) => {
+      try {
+        const response = await axios.post(loginUrl, {
+          email: email,
+          password: password
+        }, {
+          headers: {
+            'Authorization': authorization,
+            'apikey': apikey
+          }
+        });
 
-      if (response.data) {
-        const userId = response.data.user.id; // Ambil user ID dari response
-        await setLocalStorage({ userId });
-        console.log(`User ID: ${userId}`);
+        const userId = response.data.user.id;
+        console.log('User ID:', userId);
+
+        const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
+        const profileResponse = await axios.get(profileUrl, {
+          headers: {
+            'Authorization': authorization,
+            'apikey': apikey
+          }
+        });
+
+        console.log('Profile Data:', profileResponse.data);
+
         await connectWebSocket(userId);
+      } catch (error) {
+        console.error('Error getting user ID:', error);
       }
-      rl.close();
     });
   });
 }
 
-// Fungsi untuk format tanggal
 function formatDate(date) {
-  return date.toISOString().slice(0, 19).replace('T', ' ');
+  return date.toISOString().replace('T', ' ').split('.')[0];
 }
 
-// Menjalankan fungsi utama
-(async () => {
-  await displayHeader();
-  await getUserId();
-})();
+function startBlinkingColorMessage() {
+  stopBlinkingColorMessage();
+  blinkingColorInterval = setInterval(updateBlinkingColorMessage, 1000);
+}
+
+function stopBlinkingColorMessage() {
+  if (blinkingColorInterval) {
+    clearInterval(blinkingColorInterval);
+    blinkingColorInterval = null;
+  }
+}
+
+function updateBlinkingColorMessage() {
+  console.clear(); // Menghapus konsol
+  const currentTime = formatDate(new Date());
+  console.log(`---------------------`);
+  console.log(`Waktu Saat Ini: ${currentTime}`);
+  console.log(`Poin Hari Ini: ${pointsToday}`);
+  console.log(`Total Poin: ${pointsTotal}`);
+  console.log(`---------------------`);
+}
+
+// Mulai dengan mengambil User ID
+getUserId();
