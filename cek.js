@@ -91,10 +91,13 @@ async function connectWebSocket(userId) {
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
     const messageDate = new Date(data.date);
+    
+    // Cetak waktu saat pesan diterima
     console.log("Received message from WebSocket:", {
       ...data,
-      JAM: getFormattedTimestamp(messageDate)
+      JAM: getFormattedTimestamp(messageDate) // Tampilkan jam pesan yang diterima
     });
+    
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
       const lastUpdated = new Date().toISOString();
       await setLocalStorage({
@@ -132,9 +135,11 @@ let clockInterval;
 
 function startUpdatingClock() {
   clockInterval = setInterval(() => {
+    // Cek dan simpan waktu saat ini, namun tidak mencetak setiap detik
     const now = new Date();
     const formattedTime = getFormattedTimestamp(now);
-    console.log(`JAM: ${formattedTime}`);
+    // Uncomment jika Anda ingin melihat waktu berjalan di log
+    // console.log(`Current Time: ${formattedTime}`);
   }, 1000);
 }
 
@@ -244,11 +249,9 @@ async function getUserId() {
         });
 
         console.log('Profile Data:', profileResponse.data);
-        await setLocalStorage({ userId });
-        await startCountdownAndPoints();
-        await connectWebSocket(userId);
+        connectWebSocket(userId);
       } catch (error) {
-        console.error('Error fetching user ID:', error);
+        console.error('Error:', error.response ? error.response.data : error.message);
       } finally {
         rl.close();
       }
@@ -256,20 +259,4 @@ async function getUserId() {
   });
 }
 
-async function main() {
-  const localStorageData = await getLocalStorage();
-  const userId = localStorageData.userId;
-
-  if (!userId) {
-    console.log('No user ID found. Please log in.');
-    await getUserId();
-  } else {
-    await startCountdownAndPoints();
-    await connectWebSocket(userId);
-    rl.close();
-  }
-}
-
-main().catch((err) => {
-  console.error('Error:', err);
-});
+getUserId();
