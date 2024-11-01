@@ -212,8 +212,6 @@ async function getUserId() {
 
   rl.question('Email: ', (email) => {
     rl.question('Password: ', async (password) => {
-      displayHeader();
-
       setTimeout(async () => {
         try {
           const response = await axios.post(loginUrl, {
@@ -231,20 +229,27 @@ async function getUserId() {
             console.log(`User ID: ${response.data.user.id}`);
             connectWebSocket(response.data.user.id);
           } else {
-            console.error("User not found.");
+           
+            console.error("User not found or login failed");
           }
         } catch (error) {
-          console.error("Error during login:", error.response ? error.response.data : error.message);
+          console.error("Error during login:", error);
         }
-      }, 5000);
+      }, 100);
     });
   });
 }
 
+// Fungsi untuk memformat tanggal dan waktu
 function formatDate(date) {
-  const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-  return date.toLocaleString('en-US', options);
+  return date.toISOString().replace('T', ' ').substr(0, 19);
 }
 
-displayHeader();
-getUserId();
+// Memulai aplikasi
+(async () => {
+  const localStorageData = await getLocalStorage();
+  if (localStorageData.lastUpdated) {
+    console.log(`Last updated: ${localStorageData.lastUpdated}`);
+  }
+  getUserId();
+})();
