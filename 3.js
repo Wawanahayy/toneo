@@ -2,14 +2,11 @@ const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
-const axios = require('axios');
 
 let socket = null;
 let pingInterval;
-let countdownInterval;
 let logInterval;
 let potentialPoints = 0;
-let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
 let startTime = new Date();
@@ -18,13 +15,9 @@ const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
 
 const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
+    input: process.stdin,
+    output: process.stdout
 });
-
-function printColored(colorCode, text) {
-    console.log(`\x1b[${colorCode}m${text}\x1b[0m`);
-}
 
 async function getLocalStorage() {
     try {
@@ -41,35 +34,22 @@ async function setLocalStorage(data) {
     await writeFileAsync('localStorage.json', JSON.stringify(newData));
 }
 
-async function connectWebSocket(userId) {
+async function connectWebSocket(email) {
     if (socket) return;
-    const version = "v0.2";
     const url = "wss://secure.ws.teneo.pro";
-    const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
+    const wsUrl = `${url}/websocket?email=${encodeURIComponent(email)}`;
     socket = new WebSocket(wsUrl);
 
     socket.onopen = async () => {
-        const connectionTime = new Date();
-        await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
-        console.log("WebSocket connected at", formatDate(connectionTime));
+        console.log("WebSocket connected");
         startPinging();
-        startCountdownAndPoints();
         startLogUpdates();
     };
 
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data);
-        const messageTime = new Date(data.date);
-        data.DATE = formatDate(messageTime);
-        console.log(`Received message from WebSocket:`, {
-            ...data,
-            currentTime: formatDate(new Date())
-        });
-
         if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-            const lastUpdated = new Date().toISOString();
             await setLocalStorage({
-                lastUpdated: lastUpdated,
                 pointsTotal: data.pointsTotal,
                 pointsToday: data.pointsToday,
             });
@@ -104,7 +84,6 @@ function startPinging() {
     pingInterval = setInterval(async () => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ type: "PING" }));
-            await setLocalStorage({ lastPingDate: new Date().toISOString() });
         }
     }, 10000);
 }
@@ -132,86 +111,13 @@ function stopLogUpdates() {
 }
 
 process.on('SIGINT', () => {
-    console.log('Received SIGINT. Stopping pinging and log updates...');
+    console.log('Stopping...');
     stopPinging();
     stopLogUpdates();
     disconnectWebSocket();
     process.exit(0);
 });
 
-function getTimeRunning() {
-    const now = new Date();
-    const diff = now - startTime; 
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-function updateBlinkingColorMessage() {
-    console.clear(); 
-    const currentTime = formatDate(new Date());
-    const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
-    const timeRunning = getTimeRunning();
-    console.log(`---------------------`);
-    console.log(`Waktu Saat Ini: ${currentTime}`); 
-    console.log(`Poin Hari Ini: ${pointsToday}`); 
-    console.log(`Total Poin: ${pointsTotal}`); 
-    console.log(`Websocket: ${websocketStatus}`); 
-    console.log(`FOLLOW TG: @AirdropJP_JawaPride`); 
-    console.log(`TIME RUN: ${timeRunning}`); 
-    console.log(`---------------------`);
-}
-
-function startCountdownAndPoints() {
-    clearInterval(countdownInterval);
-    updateCountdownAndPoints();
-    countdownInterval = setInterval(() => {
-        updateCountdownAndPoints();
-        updateBlinkingColorMessage();
-    }, 1000);
-}
-
-async function updateCountdownAndPoints() {
-    const { lastUpdated } = await getLocalStorage();
-    if (lastUpdated) {
-        const nextHeartbeat = new Date(lastUpdated);
-        nextHeartbeat.setMinutes(nextHeartbeat.getMinutes() + 15);
-        const now = new Date();
-        const diff = nextHeartbeat.getTime() - now.getTime();
-
-        if (diff > 0) {
-            const minutes = Math.floor(diff / 60000);
-            const seconds = Math.floor((diff % 60000) / 1000);
-            countdown = `${minutes}m ${seconds}s`;
-
-            const maxPoints = 25;
-            const timeElapsed = now.getTime() - new Date(lastUpdated).getTime();
-            const timeElapsedMinutes = timeElapsed / (60 * 1000);
-            let newPoints = Math.min(maxPoints, (timeElapsedMinutes / 15) * maxPoints);
-            newPoints = parseFloat(newPoints.toFixed(2));
-
-            if (Math.random() < 0.1) {
-                const bonus = Math.random() * 2;
-                newPoints = Math.min(maxPoints, newPoints + bonus);
-                newPoints = parseFloat(newPoints.toFixed(2));
-            }
-
-            potentialPoints = newPoints;
-        } else {
-            countdown = "Calculating...";
-            potentialPoints = 25;
-        }
-    } else {
-        countdown = "Calculating...";
-        potentialPoints = 0;
-    }
-}
-
-function formatDate(date) {
-    const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-    return date.toLocaleString('en-US', options).replace(',', '');
-}
-
-rl.question("Masukkan userId: ", (userId) => {
-    connectWebSocket(userId);
+rl.question("Masukkan email: ", (email) => {
+    connectWebSocket(email);
 });
