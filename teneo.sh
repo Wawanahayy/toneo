@@ -1,26 +1,27 @@
 #!/bin/bash
 
-
 echo "Menjalankan tampilan..."
 curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash
 
 
-read -p "Masukkan SUPABASE_KEY: " SUPABASE_KEY
-read -p "Masukkan SUPABASE_USER_EMAIL: " SUPABASE_USER_EMAIL
-read -sp "Masukkan SUPABASE_USER_PASSWORD: " SUPABASE_USER_PASSWORD
-echo
+echo "WELCOME TO SCRIPT WITH JAWAPRIDE_ID"
+echo "{ 1 to continue 2 to stop }"
+read -p "Please choose an option (1 or 2): " option
 
-# Menyimpan ke file .env
-echo "SUPABASE_URL=https://ikknngrgxuxgjhplbpey.supabase.co" > .env
-echo "SUPABASE_USER_EMAIL=${SUPABASE_USER_EMAIL}" >> .env
-echo "SUPABASE_USER_PASSWORD=${SUPABASE_USER_PASSWORD}" >> .env
+if [ "$option" -eq 2 ]; then
+    echo "Please join the channel first:"
+    echo "SILAHKAN JOIN terlebih dahulu: https://t.me/AirdropJP_JawaPride"
+    echo "TG: @AirdropJP_JawaPride"
+    exit 0
+fi
 
-# Instalasi dependensi
-echo "Menginstal dependensi..."
+
+# Install dependencies
+echo "Installing dependencies..."
 npm install dotenv
 npm install chalk@4
 npm install ws
 npm install axios
 
-# Menjalankan run.js
+# Run run.js
 node run.js
