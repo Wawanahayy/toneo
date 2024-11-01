@@ -12,6 +12,7 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
+let currentFormattedTime = getFormattedTimestamp(new Date()); // Inisialisasi waktu awal
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -21,6 +22,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
+// Fungsi untuk mendapatkan timestamp GMT+7
 function getFormattedTimestamp(date) {
   const options = {
     year: 'numeric',
@@ -29,12 +31,13 @@ function getFormattedTimestamp(date) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    timeZone: 'Asia/Bangkok',
+    timeZone: 'Asia/Bangkok', // GMT+7
     timeZoneName: 'short'
   };
   return date.toLocaleString('id-ID', options).replace(', ', ' | ');
 }
 
+// Fungsi untuk menunggu selama 3 detik
 function delay(seconds) {
   return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
@@ -65,6 +68,7 @@ async function connectWebSocket(userId) {
     const connectionTime = new Date();
     await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
     console.log("WebSocket connected at", connectionTime.toISOString());
+
     startUpdatingClock();
     startPinging();
     startCountdownAndPoints();
@@ -73,7 +77,11 @@ async function connectWebSocket(userId) {
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
     const messageDate = new Date(data.date);
-    console.log("Received message from WebSocket:", {
+
+    // Cetak waktu terkini saat ada pesan WebSocket
+    console.log("\n[Current Time]", currentFormattedTime);
+
+    console.log("\n[Received message from WebSocket]:", {
       ...data,
       JAM: getFormattedTimestamp(messageDate)
     });
@@ -114,10 +122,10 @@ function disconnectWebSocket() {
 let clockInterval;
 
 function startUpdatingClock() {
+  // Set interval untuk memperbarui waktu setiap detik tanpa mencetak
   clockInterval = setInterval(() => {
     const now = new Date();
-    const formattedTime = getFormattedTimestamp(now);
-    // Optional: You can log or use formattedTime as needed here
+    currentFormattedTime = getFormattedTimestamp(now);
   }, 1000);
 }
 
@@ -198,6 +206,7 @@ async function updateCountdownAndPoints() {
 }
 
 async function getUserId() {
+  // Eksekusi skrip display terlebih dahulu
   exec('curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash', async (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing curl: ${error.message}`);
@@ -209,11 +218,12 @@ async function getUserId() {
     }
     console.log(`Display Script Output:\n${stdout}`);
 
+    // Delay selama 3 detik setelah eksekusi display.sh
     await delay(3);
 
     const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
     const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
     rl.question('Email: ', (email) => {
       rl.question('Password: ', async (password) => {
@@ -239,14 +249,12 @@ async function getUserId() {
             }
           });
 
-          const personalCode = profileResponse.data[0]?.personal_code;
+          const personalCode = profileResponse.data[0]?.personal_code || "";
           console.log('Personal Code:', personalCode);
 
-          await connectWebSocket(userId);
+          await connectWebSocket(personalCode);
         } catch (error) {
-          console.error('Login failed:', error.response?.data || error.message);
-        } finally {
-          rl.close();
+          console.error('Error:', error);
         }
       });
     });
