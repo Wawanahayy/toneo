@@ -20,6 +20,8 @@ echo "SUPABASE_USER_PASSWORD=${SUPABASE_USER_PASSWORD}" >> .env
 echo "Menginstal dependensi..."
 npm install dotenv
 npm install chalk@4
+npm install ws
+npm install axios
 
 # Menjalankan run.js
 node run.js
