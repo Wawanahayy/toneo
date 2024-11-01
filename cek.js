@@ -12,7 +12,6 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
-let blinkingColorInterval; // Tambahkan interval untuk warna berkedip
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -58,7 +57,6 @@ async function connectWebSocket(userId) {
     startPinging();
     startCountdownAndPoints();
     startLogUpdates(); // Mulai mencetak log setiap 5 menit
-    startBlinkingColorMessage(); // Mulai memperbarui pesan berkedip
   };
 
   socket.onmessage = async (event) => {
@@ -92,7 +90,6 @@ async function connectWebSocket(userId) {
     console.log("WebSocket disconnected");
     stopPinging();
     stopLogUpdates(); // Hentikan pencetakan log saat WebSocket terputus
-    stopBlinkingColorMessage(); // Hentikan pesan berkedip saat WebSocket terputus
   };
 
   socket.onerror = (error) => {
@@ -106,7 +103,6 @@ function disconnectWebSocket() {
     socket = null;
     stopPinging();
     stopLogUpdates(); // Hentikan pencetakan log saat terputus
-    stopBlinkingColorMessage(); // Hentikan pesan berkedip saat terputus
   }
 }
 
@@ -147,14 +143,32 @@ process.on('SIGINT', () => {
   stopPinging();
   stopLogUpdates(); // Hentikan log saat menerima SIGINT
   disconnectWebSocket();
-  stopBlinkingColorMessage(); // Hentikan berkedip saat menerima SIGINT
   process.exit(0);
 });
+
+let currentColorIndex = 0; // Menyimpan indeks warna saat ini
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m']; // Warna yang akan digunakan
+
+function updateBlinkingColorMessage() {
+  console.clear(); // Menghapus konsol
+  const currentTime = formatDate(new Date());
+  console.log(`---------------------`);
+  console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); // Mengubah warna untuk waktu
+  console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); // Mengubah warna untuk poin hari ini
+  console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); // Mengubah warna untuk total poin
+  console.log(`---------------------`);
+
+  // Mengubah warna untuk iterasi berikutnya
+  currentColorIndex = (currentColorIndex + 1) % colors.length; // Mengatur indeks warna untuk warna berikutnya
+}
 
 function startCountdownAndPoints() {
   clearInterval(countdownInterval);
   updateCountdownAndPoints();
-  countdownInterval = setInterval(updateCountdownAndPoints, 1000);
+  countdownInterval = setInterval(() => {
+    updateCountdownAndPoints();
+    updateBlinkingColorMessage(); // Memperbarui pesan berkedip setiap detik
+  }, 1000);
 }
 
 async function updateCountdownAndPoints() {
@@ -203,32 +217,18 @@ async function getUserId() {
   rl.question('Email: ', (email) => {
     rl.question('Password: ', async (password) => {
       try {
-        const response = await axios.post(loginUrl, {
-          email: email,
-          password: password
-        }, {
+        const response = await axios.post(loginUrl, { email, password }, {
           headers: {
-            'Authorization': authorization,
-            'apikey': apikey
+            "Authorization": authorization,
+            "apikey": apikey
           }
         });
-
         const userId = response.data.user.id;
-        console.log('User ID:', userId);
-
-        const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
-        const profileResponse = await axios.get(profileUrl, {
-          headers: {
-            'Authorization': authorization,
-            'apikey': apikey
-          }
-        });
-
-        console.log('Profile Data:', profileResponse.data);
-
+        await setLocalStorage({ userId });
         await connectWebSocket(userId);
+        rl.close(); // Tutup readline interface setelah mendapatkan userId
       } catch (error) {
-        console.error('Error getting user ID:', error);
+        console.error("Error during login:", error.message);
       }
     });
   });
@@ -238,27 +238,13 @@ function formatDate(date) {
   return date.toISOString().replace('T', ' ').split('.')[0];
 }
 
-function startBlinkingColorMessage() {
-  stopBlinkingColorMessage();
-  blinkingColorInterval = setInterval(updateBlinkingColorMessage, 1000);
-}
-
-function stopBlinkingColorMessage() {
-  if (blinkingColorInterval) {
-    clearInterval(blinkingColorInterval);
-    blinkingColorInterval = null;
+// Mulai aplikasi
+(async () => {
+  await displayHeader();
+  const localStorageData = await getLocalStorage();
+  if (localStorageData.userId) {
+    await connectWebSocket(localStorageData.userId);
+  } else {
+    await getUserId();
   }
-}
-
-function updateBlinkingColorMessage() {
-  console.clear(); // Menghapus konsol
-  const currentTime = formatDate(new Date());
-  console.log(`---------------------`);
-  console.log(`Waktu Saat Ini: ${currentTime}`);
-  console.log(`Poin Hari Ini: ${pointsToday}`);
-  console.log(`Total Poin: ${pointsTotal}`);
-  console.log(`---------------------`);
-}
-
-// Mulai dengan mengambil User ID
-getUserId();
+})();
