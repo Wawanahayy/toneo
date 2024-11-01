@@ -4,14 +4,11 @@ const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
 
-let socket = null;
-let pingInterval;
-let countdownInterval;
-let logInterval;
+let sockets = []; // Array untuk menyimpan koneksi WebSocket
+let pingIntervals = [];
+let countdownIntervals = [];
+let logIntervals = [];
 let potentialPoints = 0;
-let countdown = "Calculating...";
-let pointsTotal = 0;
-let pointsToday = 0;
 let startTime; // Untuk menyimpan waktu mulai
 
 const readFileAsync = promisify(fs.readFile);
@@ -22,26 +19,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-const hidePassword = () => {
-  rl.stdoutMuted = true;
-};
-
-const showPassword = () => {
-  rl.stdoutMuted = false;
-  console.log(''); // Untuk memberi jarak setelah kata sandi dimasukkan
-};
-
-// Membuat metode baru untuk menangani permintaan input yang tersembunyi
-const questionWithHiddenInput = (query) => {
-  return new Promise(resolve => {
-    rl.question(query, (input) => {
-      showPassword(); // Menampilkan kembali input setelah menerima kata sandi
-      resolve(input);
-    });
-    hidePassword(); // Menyembunyikan input
-  });
-};
-
+// Fungsi untuk mendapatkan dan menyimpan data lokal
 async function getLocalStorage() {
   try {
     const data = await readFileAsync('localStorage.json', 'utf8');
@@ -57,12 +35,12 @@ async function setLocalStorage(data) {
   await writeFileAsync('localStorage.json', JSON.stringify(newData));
 }
 
-async function connectWebSocket(userId) {
-  if (socket) return;
+async function connectWebSocket(userId, proxy) {
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
-  socket = new WebSocket(wsUrl);
+
+  const socket = new WebSocket(wsUrl, { agent: proxy ? new HttpsProxyAgent(proxy) : undefined });
 
   startTime = new Date(); // Menyimpan waktu mulai saat koneksi WebSocket
 
@@ -71,9 +49,9 @@ async function connectWebSocket(userId) {
     const formattedConnectionTime = formatDate(connectionTime);
     await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
     console.log("WebSocket connected at", formattedConnectionTime);
-    startPinging();
-    startCountdownAndPoints();
-    startLogUpdates();
+    startPinging(socket);
+    startCountdownAndPoints(socket);
+    startLogUpdates(socket);
   };
 
   socket.onmessage = async (event) => {
@@ -101,68 +79,65 @@ async function connectWebSocket(userId) {
   };
 
   socket.onclose = () => {
-    socket = null;
     console.log("WebSocket disconnected");
-    stopPinging();
-    stopLogUpdates();
+    stopPinging(socket);
+    stopLogUpdates(socket);
   };
 
   socket.onerror = (error) => {
     console.error("WebSocket error:", error);
   };
+
+  return socket; // Mengembalikan koneksi socket
 }
 
-function disconnectWebSocket() {
+function disconnectWebSocket(socket) {
   if (socket) {
     socket.close();
-    socket = null;
-    stopPinging();
-    stopLogUpdates();
+    stopPinging(socket);
+    stopLogUpdates(socket);
   }
 }
 
-function startPinging() {
-  stopPinging();
-  pingInterval = setInterval(async () => {
+function startPinging(socket) {
+  const pingInterval = setInterval(async () => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "PING" }));
       await setLocalStorage({ lastPingDate: new Date().toISOString() });
     }
   }, 10000);
+  pingIntervals.push(pingInterval); // Simpan interval ping
 }
 
-function stopPinging() {
-  if (pingInterval) {
-    clearInterval(pingInterval);
-    pingInterval = null;
+function stopPinging(socket) {
+  const index = pingIntervals.indexOf(socket);
+  if (index > -1) {
+    clearInterval(pingIntervals[index]);
+    pingIntervals.splice(index, 1);
   }
 }
 
-function startLogUpdates() {
-  stopLogUpdates();
-  logInterval = setInterval(async () => {
+function startLogUpdates(socket) {
+  const logInterval = setInterval(async () => {
     const localStorageData = await getLocalStorage();
     console.log(`Log Update: \n - Points Today: ${localStorageData.pointsToday || 0} \n - Points Total: ${localStorageData.pointsTotal || 0} \n - Potential Points: ${potentialPoints}`);
   }, 300000);
+  logIntervals.push(logInterval); // Simpan interval log
 }
 
-function stopLogUpdates() {
-  if (logInterval) {
-    clearInterval(logInterval);
-    logInterval = null;
+function stopLogUpdates(socket) {
+  const index = logIntervals.indexOf(socket);
+  if (index > -1) {
+    clearInterval(logIntervals[index]);
+    logIntervals.splice(index, 1);
   }
 }
 
 process.on('SIGINT', () => {
   console.log('Received SIGINT. Stopping pinging and log updates...');
-  stopPinging();
-  stopLogUpdates();
-  disconnectWebSocket();
+  sockets.forEach(socket => disconnectWebSocket(socket));
   process.exit(0);
 });
-
-let currentColorIndex = 0;
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m'];
 
 function calculateElapsedTime() {
   const now = new Date();
@@ -172,101 +147,91 @@ function calculateElapsedTime() {
   return `${minutes}:${seconds}`;
 }
 
-function updateBlinkingColorMessage() {
+function updateBlinkingColorMessage(socket, accountNumber) {
   console.clear();
   const currentTime = formatDate(new Date());
   const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
   const elapsedTime = calculateElapsedTime(); // Menghitung waktu berjalan
-  console.log(`------------------------------------`);
-  console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}TIME RUN: ${elapsedTime}\x1b[0m`); // Menampilkan waktu berjalan
-  console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
-  console.log(`------------------------------------`);
 
-  currentColorIndex = (currentColorIndex + 1) % colors.length;
+  console.log(`------------------------------------`);
+  console.log(`AKUN ${accountNumber}`);
+  console.log(`Waktu Saat Ini: ${currentTime}`); 
+  console.log(`Poin Hari Ini: ${pointsToday}`); 
+  console.log(`Total Poin: ${pointsTotal}`); 
+  console.log(`Websocket: ${websocketStatus}`); 
+  console.log(`TIME RUN: ${elapsedTime}`); // Menampilkan waktu berjalan
+  console.log(`FOLLOW TG: @AirdropJP_JawaPride`); 
+  console.log(`------------------------------------`);
 }
 
-function startCountdownAndPoints() {
-  clearInterval(countdownInterval);
-  updateCountdownAndPoints();
-  countdownInterval = setInterval(() => {
-    updateCountdownAndPoints();
-    updateBlinkingColorMessage();
+function startCountdownAndPoints(socket, accountNumber) {
+  const countdownInterval = setInterval(async () => {
+    updateBlinkingColorMessage(socket, accountNumber);
   }, 1000);
-}
-
-async function updateCountdownAndPoints() {
-  const { lastUpdated } = await getLocalStorage();
-  if (lastUpdated) {
-    const nextHeartbeat = new Date(lastUpdated);
-    nextHeartbeat.setMinutes(nextHeartbeat.getMinutes() + 15);
-    const now = new Date();
-    const diff = nextHeartbeat.getTime() - now.getTime();
-
-    if (diff > 0) {
-      const minutes = Math.floor(diff / 60000);
-      const seconds = Math.floor((diff % 60000) / 1000);
-      countdown = `${minutes}m ${seconds}s`;
-
-      const maxPoints = 25;
-      const timeElapsed = now.getTime() - new Date(lastUpdated).getTime();
-      const timeElapsedMinutes = timeElapsed / (60 * 1000);
-      let newPoints = Math.min(maxPoints, (timeElapsedMinutes / 15) * maxPoints);
-      newPoints = parseFloat(newPoints.toFixed(2));
-
-      if (Math.random() < 0.1) {
-        const bonus = Math.random() * 2;
-        newPoints = Math.min(maxPoints, newPoints + bonus);
-        newPoints = parseFloat(newPoints.toFixed(2));
-      }
-
-      potentialPoints = newPoints;
-    } else {
-      countdown = "Calculating...";
-      potentialPoints = 25;
-    }
-  } else {
-    countdown = "Calculating...";
-    potentialPoints = 0;
-  }
-
-  await setLocalStorage({ potentialPoints, countdown });
+  countdownIntervals.push(countdownInterval); // Simpan interval countdown
 }
 
 async function getUserId() {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8XAmcDVT4AfA02roU";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  // Menggunakan rl.question untuk meminta email
-  const email = await new Promise(resolve => {
-    rl.question("Masukkan email: ", resolve);
+  return new Promise((resolve) => {
+    rl.question('Email: ', (email) => {
+      rl.question('Password: ', async (password) => {
+        try {
+          const response = await axios.post(loginUrl, {
+            email,
+            password
+          }, {
+            headers: {
+              authorization,
+              apikey,
+              "Content-Type": "application/json"
+            }
+          });
+
+          if (response.data && response.data.user) {
+            console.log(`User ID: ${response.data.user.id}`);
+            resolve(response.data.user.id);
+          } else {
+            console.error("User not found.");
+            resolve(null);
+          }
+        } catch (error) {
+          console.error("Error during login:", error.response ? error.response.data : error.message);
+          resolve(null);
+        }
+      });
+    });
   });
-
-  // Menggunakan questionWithHiddenInput untuk meminta kata sandi
-  const password = await questionWithHiddenInput("Masukkan kata sandi: ");
-  const payload = { email, password };
-
-  try {
-    const response = await axios.post(loginUrl, payload, { headers: { Authorization: authorization } });
-    return response.data.user.id; // Mengambil user id dari respons
-  } catch (error) {
-    console.error("Error saat mendapatkan user ID:", error.message);
-    return null;
-  }
 }
 
+function formatDate(date) {
+  const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+  return date.toLocaleString('en-US', options);
+}
 
 async function main() {
-  const userId = await getUserId();
-  if (userId) {
-    await connectWebSocket(userId);
-  } else {
-    console.error("Gagal mendapatkan user ID. Program dihentikan.");
-    process.exit(1);
-  }
+  rl.question('Apakah Anda ingin menggunakan proxy? (tekan enter untuk skip): ', async (proxyInput) => {
+    let proxy = null;
+    if (proxyInput) {
+      proxy = proxyInput; // Jika input proxy tidak kosong, gunakan sebagai proxy
+    }
+
+    rl.question('Apakah Anda ingin menggunakan MULTIPLAYER AKUN ATAU HANYA 1 AKUN (tekan enter untuk satu akun): ', async (accountInput) => {
+      const accounts = accountInput ? parseInt(accountInput) : 1; // Menentukan jumlah akun
+      for (let i = 0; i < accounts; i++) {
+        const userId = await getUserId();
+        if (userId) {
+          const socket = await connectWebSocket(userId, proxy);
+          sockets.push(socket); // Menyimpan socket ke dalam array
+        } else {
+          console.log("Gagal mendapatkan userId. Hubungi admin.");
+        }
+      }
+    });
+  });
 }
 
 main();
