@@ -123,8 +123,7 @@ function startUpdatingClock() {
   clockInterval = setInterval(() => {
     const now = new Date();
     const formattedTime = getFormattedTimestamp(now);
-    // Uncomment jika Anda ingin melihat waktu berjalan di log
-    // console.log(`Current Time: ${formattedTime}`);
+    // Tidak mencetak waktu ke konsol
   }, 1000);
 }
 
@@ -253,9 +252,7 @@ async function getUserId() {
 
           await connectWebSocket(userId);
         } catch (error) {
-          console.error('Login failed:', error.response?.data || error.message);
-        } finally {
-          rl.close();
+          console.error('Error during login:', error);
         }
       });
     });
