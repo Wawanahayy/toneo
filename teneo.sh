@@ -12,7 +12,6 @@ echo
 
 # Menyimpan ke file .env
 echo "SUPABASE_URL=https://ikknngrgxuxgjhplbpey.supabase.co" > .env
-echo "SUPABASE_KEY=${SUPABASE_KEY}" >> .env
 echo "SUPABASE_USER_EMAIL=${SUPABASE_USER_EMAIL}" >> .env
 echo "SUPABASE_USER_PASSWORD=${SUPABASE_USER_PASSWORD}" >> .env
 
