@@ -7,6 +7,7 @@ const axios = require('axios');
 let socket = null;
 let pingInterval;
 let countdownInterval;
+let logInterval; // Tambahkan interval untuk log
 let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
@@ -49,34 +50,28 @@ async function connectWebSocket(userId) {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = async () => {
-    const connectionTime = new Date().toISOString();
-    await setLocalStorage({ lastUpdated: connectionTime });
-    console.log("WebSocket connected at", connectionTime);
+    const connectionTime = new Date();
+    const formattedConnectionTime = formatDate(connectionTime);
+    await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
+    console.log("WebSocket connected at", formattedConnectionTime);
     startPinging();
     startCountdownAndPoints();
+    startLogUpdates(); // Mulai mencetak log setiap 5 menit
   };
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
+    const messageTime = new Date(data.date);
+    const formattedMessageTime = formatDate(messageTime);
     
-    // Mengonversi waktu ke GMT+7
-    const utcDate = new Date(data.date); // Mengonversi string date menjadi objek Date
-    const gmt7Date = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000)); // Menambahkan 7 jam ke UTC
+    // Menambahkan DATE ke data yang diterima
+    data.DATE = formattedMessageTime;
 
-    // Format tanggal dan waktu sesuai kebutuhan
-    const options = { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit', 
-        timeZone: 'Asia/Jakarta' 
-    };
-    const formattedDate = gmt7Date.toLocaleString('id-ID', options);
-
-    // Menampilkan pesan dengan timestamp GMT+7
-    console.log(`[${formattedDate}] Received message from WebSocket:`, data);
+    // Menampilkan pesan dengan timestamp
+    console.log(`Received message from WebSocket:`, {
+      ...data,
+      currentTime: formatDate(new Date()) // Menambahkan waktu saat ini
+    });
 
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
       const lastUpdated = new Date().toISOString();
@@ -94,6 +89,7 @@ async function connectWebSocket(userId) {
     socket = null;
     console.log("WebSocket disconnected");
     stopPinging();
+    stopLogUpdates(); // Hentikan pencetakan log saat WebSocket terputus
   };
 
   socket.onerror = (error) => {
@@ -106,6 +102,7 @@ function disconnectWebSocket() {
     socket.close();
     socket = null;
     stopPinging();
+    stopLogUpdates(); // Hentikan pencetakan log saat terputus
   }
 }
 
@@ -126,9 +123,25 @@ function stopPinging() {
   }
 }
 
+function startLogUpdates() {
+  stopLogUpdates();
+  logInterval = setInterval(async () => {
+    const localStorageData = await getLocalStorage();
+    console.log(`Log Update: \n - Points Today: ${localStorageData.pointsToday || 0} \n - Points Total: ${localStorageData.pointsTotal || 0} \n - Potential Points: ${potentialPoints}`);
+  }, 300000); // 300000 ms = 5 menit
+}
+
+function stopLogUpdates() {
+  if (logInterval) {
+    clearInterval(logInterval);
+    logInterval = null;
+  }
+}
+
 process.on('SIGINT', () => {
-  console.log('Received SIGINT. Stopping pinging...');
+  console.log('Received SIGINT. Stopping pinging and log updates...');
   stopPinging();
+  stopLogUpdates(); // Hentikan log saat menerima SIGINT
   disconnectWebSocket();
   process.exit(0);
 });
@@ -219,31 +232,29 @@ async function getUserId() {
   });
 }
 
+function formatDate(date) {
+  const options = { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit', 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit', 
+    hour12: false,
+    timeZone: 'Asia/Jakarta',
+    timeZoneName: 'short'
+  };
+  return date.toLocaleString('en-US', options).replace(',', '').replace(/\/(\d{1,2})\//g, '/0$1/').replace(/\/(\d{1,2})$/, '/0$1');
+}
+
 async function main() {
-  await displayHeader(); // Menampilkan header saat program dijalankan
+  await displayHeader();
   const localStorageData = await getLocalStorage();
-  let userId = localStorageData.userId;
+  const userId = localStorageData.userId;
 
   if (!userId) {
-    rl.question('User ID not found. Would you like to:\n1. Login to your account\n2. Enter User ID manually\nChoose an option: ', async (option) => {
-      switch (option) {
-        case '1':
-          await getUserId();
-          break;
-        case '2':
-          rl.question('Please enter your user ID: ', async (inputUserId) => {
-            userId = inputUserId;
-            await setLocalStorage({ userId });
-            await startCountdownAndPoints();
-            await connectWebSocket(userId);
-            rl.close();
-          });
-          break;
-        default:
-          console.log('Invalid option. Exiting...');
-          process.exit(1);
-      }
-    });
+    console.log('User ID not found. Please log in.');
+    await getUserId();
   } else {
     console.log('Using stored User ID:', userId);
     await startCountdownAndPoints();
