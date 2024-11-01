@@ -184,6 +184,7 @@ async function updateCountdownAndPoints() {
       let newPoints = Math.min(maxPoints, (timeElapsedMinutes / 15) * maxPoints);
       newPoints = parseFloat(newPoints.toFixed(2));
 
+      // Memberikan bonus acak dengan probabilitas 10%
       if (Math.random() < 0.1) {
         const bonus = Math.random() * 2;
         newPoints = Math.min(maxPoints, newPoints + bonus);
@@ -221,7 +222,7 @@ async function getUserId() {
 
     const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
     const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
     rl.question('Email: ', (email) => {
       rl.question('Password: ', async (password) => {
@@ -247,14 +248,15 @@ async function getUserId() {
             }
           });
 
-          const personalCode = profileResponse.data[0].personal_code;
-          console.log('Personal Code:', personalCode);
-
-          await connectWebSocket(personalCode);
+          const personalCode = profileResponse.data[0]?.personal_code;
+          if (personalCode) {
+            console.log('Personal Code:', personalCode);
+            await connectWebSocket(personalCode);
+          } else {
+            console.log('Personal Code not found');
+          }
         } catch (error) {
-          console.error('Error getting user ID:', error);
-        } finally {
-          rl.close();
+          console.error('Error fetching user ID:', error);
         }
       });
     });
