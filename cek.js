@@ -3,6 +3,7 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
+const { exec } = require('child_process'); // Import exec untuk menjalankan skrip Bash
 
 let socket = null;
 let pingInterval;
@@ -21,19 +22,25 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-const displayColoredText = () => {
-    console.log("\033[40;96m============================================================\033[0m");
-    console.log("\033[42;37m=======================  J.W.P.A  ==========================\033[0m");
-    console.log("\033[45;97m================= @AirdropJP_JawaPride =====================\033[0m");
-    console.log("\033[43;30m=============== https://x.com/JAWAPRIDE_ID =================\033[0m");
-    console.log("\033[41;97m============= https://linktr.ee/Jawa_Pride_ID ==============\033[0m");
-    console.log("\033[44;30m============================================================\033[0m");
+// Menjalankan skrip Bash
+const runBashScript = () => {
+  exec('bash display.sh', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error executing script: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Script stderr: ${stderr}`);
+      return;
+    }
+    console.log(stdout); // Tampilkan output dari skrip Bash
+  });
 };
 
-// Fungsi untuk menampilkan header
+// Menampilkan header menggunakan curl
 const displayHeader = async () => {
-  displayColoredText();
-  await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik
+  const header = await axios.get('https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh');
+  console.log(header.data);
 };
 
 async function getLocalStorage() {
@@ -74,7 +81,6 @@ async function connectWebSocket(userId) {
     const formattedMessageTime = formatDate(messageTime);
     
     data.DATE = formattedMessageTime;
-
     console.log(`Received message from WebSocket:`, {
       ...data,
       currentTime: formatDate(new Date())
@@ -153,17 +159,115 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-function formatDate(date) {
-  return date.toISOString().replace('T', ' ').split('.')[0];
+let currentColorIndex = 0;
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m'];
+
+function updateBlinkingColorMessage() {
+  console.clear(); 
+  const currentTime = formatDate(new Date());
+  const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
+  console.log(`---------------------`);
+  console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
+  console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); 
+  console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
+  console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
+  console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
+  console.log(`---------------------`);
+  currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
-// Mulai aplikasi
-(async () => {
-  await displayHeader();
-  const localStorageData = await getLocalStorage();
-  if (localStorageData.userId) {
-    await connectWebSocket(localStorageData.userId);
+function startCountdownAndPoints() {
+  clearInterval(countdownInterval);
+  updateCountdownAndPoints();
+  countdownInterval = setInterval(() => {
+    updateCountdownAndPoints();
+    updateBlinkingColorMessage();
+  }, 1000);
+}
+
+async function updateCountdownAndPoints() {
+  const { lastUpdated } = await getLocalStorage();
+  if (lastUpdated) {
+    const nextHeartbeat = new Date(lastUpdated);
+    nextHeartbeat.setMinutes(nextHeartbeat.getMinutes() + 15);
+    const now = new Date();
+    const diff = nextHeartbeat.getTime() - now.getTime();
+
+    if (diff > 0) {
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      countdown = `${minutes}m ${seconds}s`;
+
+      const maxPoints = 25;
+      const timeElapsed = now.getTime() - new Date(lastUpdated).getTime();
+      const timeElapsedMinutes = timeElapsed / (60 * 1000);
+      let newPoints = Math.min(maxPoints, (timeElapsedMinutes / 15) * maxPoints);
+      newPoints = parseFloat(newPoints.toFixed(2));
+
+      if (Math.random() < 0.1) {
+        const bonus = Math.random() * 2;
+        newPoints = Math.min(maxPoints, newPoints + bonus);
+        newPoints = parseFloat(newPoints.toFixed(2));
+      }
+
+      potentialPoints = newPoints;
+    } else {
+      countdown = "Calculating...";
+      potentialPoints = 25;
+    }
   } else {
-    await getUserId();
+    countdown = "Calculating...";
+    potentialPoints = 0;
   }
-})();
+
+  await setLocalStorage({ potentialPoints, countdown });
+}
+
+async function getUserId() {
+  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const userId = await getLocalStorage().then(data => data.userId);
+
+  if (userId) {
+    connectWebSocket(userId);
+  } else {
+    rl.question('Masukkan email: ', (email) => {
+      rl.question('Masukkan password: ', (password) => {
+        axios.post(loginUrl, { email, password }, {
+          headers: {
+            'Authorization': authorization,
+            'apikey': apikey,
+            'Content-Type': 'application/json',
+          }
+        }).then(async (response) => {
+          const userId = response.data.user.id;
+          await setLocalStorage({ userId });
+          connectWebSocket(userId);
+        }).catch(error => {
+          console.error('Error saat login:', error.message);
+        }).finally(() => {
+          rl.close();
+        });
+      });
+    });
+  }
+}
+
+// Format tanggal
+function formatDate(date) {
+  return date.toLocaleString('id-ID', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
+// Menjalankan fungsi
+runBashScript(); // Menjalankan skrip Bash saat memulai
+displayHeader(); // Menampilkan header
+getUserId(); // Meminta input pengguna dan memulai koneksi WebSocket
