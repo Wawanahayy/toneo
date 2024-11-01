@@ -22,6 +22,22 @@ async function logMessage(message) {
   await fs.promises.appendFile('logs.txt', logEntry);
 }
 
+// Fungsi untuk mendapatkan waktu lokal GMT+7
+function getLocalTimeGMT7() {
+  const date = new Date();
+  const options = {
+    timeZone: 'Asia/Jakarta', // Zona waktu GMT+7
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  return new Intl.DateTimeFormat('en-GB', options).format(date);
+}
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -60,8 +76,8 @@ async function connectWebSocket(userId) {
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-    console.log("Received message from WebSocket:", data);
-    await logMessage(`Received message: ${JSON.stringify(data)}`);
+    console.log(`Received message at ${getLocalTimeGMT7()}:`, data);
+    await logMessage(`Received message at ${getLocalTimeGMT7()}: ${JSON.stringify(data)}`);
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
       const lastUpdated = new Date().toISOString();
       await setLocalStorage({
@@ -102,13 +118,7 @@ function startPinging() {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "PING" }));
       await setLocalStorage({ lastPingDate: new Date().toISOString() });
-      // Log pengiriman PING dengan penundaan 3 menit
-      setTimeout(async () => {
-        const gmtPlus7Time = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
-        const logMessageFormat = `${gmtPlus7Time} | PING sent..! | pointsToday: ${pointsToday} | pointsTotal: ${pointsTotal}`;
-        await logMessage(logMessageFormat);
-        console.log(logMessageFormat); // Tampilkan di konsol jika diinginkan
-      }, 3 * 60 * 1000); // 3 menit dalam milidetik
+      await logMessage('PING sent');
     }
   }, 10000);
 }
@@ -118,6 +128,15 @@ function stopPinging() {
     clearInterval(pingInterval);
     pingInterval = null;
   }
+}
+
+// Fungsi untuk memperbarui dan menampilkan waktu setiap detik
+function updateAndDisplayTime() {
+  setInterval(() => {
+    const currentTime = getLocalTimeGMT7();
+    console.clear(); // Bersihkan konsol untuk menampilkan waktu baru
+    console.log(`Current Time (GMT+7): ${currentTime}`); // Tampilkan waktu saat ini
+  }, 1000); // Perbarui setiap detik
 }
 
 process.on('SIGINT', () => {
@@ -209,22 +228,11 @@ async function getUserId() {
           const userId = response.data.user.id;
           console.log('User ID:', userId);
           await logMessage(`User ID: ${userId}`);
-
-          const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
-          const profileResponse = await axios.get(profileUrl, {
-            headers: {
-              'Authorization': authorization,
-              'apikey': apikey
-            }
-          });
-
-          console.log('Profile Data:', profileResponse.data);
-          await logMessage(`Profile Data: ${JSON.stringify(profileResponse.data)}`);
-
+          await setLocalStorage({ userId: userId });
           await connectWebSocket(userId);
         } catch (error) {
-          console.error('Error:', error.message);
-          await logMessage(`Error: ${error.message}`);
+          console.error('Error fetching user ID or profile:', error);
+          await logMessage(`Error fetching user ID or profile: ${error}`);
         } finally {
           rl.close();
         }
@@ -233,4 +241,6 @@ async function getUserId() {
   });
 }
 
+// Memulai pembaruan dan tampilan waktu
+updateAndDisplayTime(); // Tambahkan pemanggilan fungsi untuk memperbarui dan menampilkan waktu
 getUserId();
