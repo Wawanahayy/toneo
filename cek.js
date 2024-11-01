@@ -2,7 +2,6 @@ const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
-const axios = require('axios');
 
 let socket = null;
 let pingInterval;
@@ -174,7 +173,6 @@ function formatDate(date) {
 (async () => {
   display_colored_text(); // Tampilkan teks berwarna
   await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik
-  await displayHeader(); // Jika ada header yang ingin ditampilkan, sesuaikan dengan kebutuhan
   const localStorageData = await getLocalStorage();
   if (localStorageData.userId) {
     await connectWebSocket(localStorageData.userId);
