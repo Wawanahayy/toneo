@@ -3,12 +3,11 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
-const { exec } = require('child_process');
+const { exec } = require('child_process'); // Import exec untuk menjalankan perintah
 
 let socket = null;
 let pingInterval;
 let countdownInterval;
-let clockInterval;
 let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
@@ -17,24 +16,25 @@ let pointsToday = 0;
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
 
+// Fungsi untuk mendapatkan timestamp dalam format JAM: HH:mm:ss GMT+7
 function getCurrentTimestampGMT7() {
-  const now = new Date();
   const options = {
-    timeZone: 'Asia/Jakarta',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    timeZone: 'Asia/Bangkok', // GMT+7
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
     hour12: false,
   };
-  return now.toLocaleString('id-ID', options).replace(',', '');
+  
+  const timeParts = new Intl.DateTimeFormat('en-US', options).formatToParts(new Date());
+  const timestamp = `${timeParts[0].value}:${timeParts[2].value}:${timeParts[4].value}`; // Mengambil jam, menit, dan detik
+  return `JAM: ${timestamp}`; // Format akhir
 }
 
+// Log function
 async function logMessage(message) {
-  const timestamp = getCurrentTimestampGMT7();
-  const logEntry = `${timestamp} - ${message}\n`;
+  const timestamp = getCurrentTimestampGMT7(); // Mendapatkan timestamp
+  const logEntry = `${timestamp} - ${message}\n`; // Menyertakan timestamp dalam log
   await fs.promises.appendFile('logs.txt', logEntry);
 }
 
@@ -70,8 +70,6 @@ async function connectWebSocket(userId) {
     await setLocalStorage({ lastUpdated: connectionTime });
     console.log("WebSocket connected at", connectionTime);
     await logMessage(`WebSocket connected at ${connectionTime}`);
-    
-    startClock();
     startPinging();
     startCountdownAndPoints();
   };
@@ -98,7 +96,6 @@ async function connectWebSocket(userId) {
     console.log("WebSocket disconnected");
     logMessage("WebSocket disconnected");
     stopPinging();
-    clearInterval(clockInterval);
   };
 
   socket.onerror = (error) => {
@@ -133,22 +130,11 @@ function stopPinging() {
   }
 }
 
-function startClock() {
-  clearInterval(clockInterval);
-  clockInterval = setInterval(() => {
-    const currentTime = getCurrentTimestampGMT7();
-    process.stdout.clearLine();
-    process.stdout.cursorTo(0);
-    process.stdout.write(currentTime);
-  }, 1000);
-}
-
 process.on('SIGINT', () => {
   console.log('Received SIGINT. Stopping pinging...');
   logMessage('Received SIGINT. Stopping pinging...');
   stopPinging();
   disconnectWebSocket();
-  clearInterval(clockInterval);
   process.exit(0);
 });
 
@@ -198,6 +184,7 @@ async function updateCountdownAndPoints() {
 }
 
 async function getUserId() {
+  // Menampilkan header menggunakan curl
   exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing display.sh: ${error.message}`);
@@ -209,7 +196,7 @@ async function getUserId() {
       logMessage(`Error: ${stderr}`);
       return;
     }
-    console.log(stdout);
+    console.log(stdout); // Tampilkan output dari display.sh
     logMessage(`Display script output: ${stdout}`);
 
     const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
@@ -246,10 +233,11 @@ async function getUserId() {
           await logMessage(`Personal Code: ${personalCode}`);
 
           await connectWebSocket(personalCode);
-          rl.close();
+
         } catch (error) {
           console.error('Error logging in:', error);
           await logMessage(`Error logging in: ${error}`);
+        } finally {
           rl.close();
         }
       });
@@ -257,4 +245,5 @@ async function getUserId() {
   });
 }
 
+// Memulai proses
 getUserId();
