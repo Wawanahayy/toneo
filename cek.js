@@ -68,7 +68,6 @@ async function connectWebSocket(userId) {
     await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
     console.log("WebSocket connected at", connectionTime.toISOString());
 
-    // Menampilkan jam secara terus-menerus
     startUpdatingClock();
     startPinging();
     startCountdownAndPoints();
@@ -120,12 +119,12 @@ function disconnectWebSocket() {
 let clockInterval;
 
 function startUpdatingClock() {
+  // Set interval untuk memperbarui waktu setiap detik
   clockInterval = setInterval(() => {
     const now = new Date();
-    // Mengupdate jam tanpa mencetak ke konsol
     const formattedTime = getFormattedTimestamp(now);
-    // Untuk debug: Uncomment jika ingin melihat waktu berjalan di log
-    // console.log("Current Time:", formattedTime);
+    // Cetak jam terkini ke konsol
+    console.log("Current Time:", formattedTime);
   }, 1000);
 }
 
