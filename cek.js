@@ -181,8 +181,8 @@ async function updateCountdownAndPoints() {
       let newPoints = Math.min(maxPoints, (timeElapsedMinutes / 15) * maxPoints);
       newPoints = parseFloat(newPoints.toFixed(2));
 
-      if (Math.random() < 0.1) {
-        const bonus = Math.random() * 2;
+      if (Math.random() < 0.1) { // 10% chance for bonus points
+        const bonus = Math.random() * 2; // Random bonus between 0 and 2
         newPoints = Math.min(maxPoints, newPoints + bonus);
         newPoints = parseFloat(newPoints.toFixed(2));
       }
@@ -190,7 +190,7 @@ async function updateCountdownAndPoints() {
       potentialPoints = newPoints;
     } else {
       countdown = "Calculating...";
-      potentialPoints = 25;
+      potentialPoints = 25; // Reset potential points after 15 minutes
     }
   } else {
     countdown = "Calculating...";
@@ -218,7 +218,7 @@ async function getUserId() {
 
     const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
     const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5LnN1cGFibGUuY29yZSIsImlhdCI6MTY5MjM4NTE2MywiZXhwIjoxOTQ3NTQ1MTYzfQ.m0uHuyjGH_w27fyB_q9xV1SyHMIeRCPwX9ZhZc-AN0I";
-    const apikey = "YOUR_API_KEY";
+    const apikey = "YOUR_API_KEY"; // Ganti dengan API key yang valid
 
     rl.question('Masukkan User ID: ', async (userId) => {
       try {
