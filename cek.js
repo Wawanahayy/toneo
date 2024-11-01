@@ -223,9 +223,11 @@ async function getUserId() {
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  setTimeout(() => {
-    rl.question('Email: ', (email) => {
-      rl.question('Password: ', async (password) => {
+  rl.question('Email: ', (email) => {
+    rl.question('Password: ', async (password) => {
+      displayHeader();
+
+      setTimeout(async () => {
         try {
           const response = await axios.post(loginUrl, {
             email,
@@ -247,9 +249,9 @@ async function getUserId() {
         } catch (error) {
           console.error("Error during login:", error.response ? error.response.data : error.message);
         }
-      });
+      }, 5000);
     });
-  }, 5000); // Penundaan 5 detik sebelum meminta email
+  });
 }
 
 function formatDate(date) {
