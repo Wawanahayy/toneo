@@ -16,26 +16,26 @@ let pointsToday = 0;
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
 
-// Log function
-async function logMessage(message) {
-  const logEntry = `${new Date().toISOString()}: ${message}\n`;
-  await fs.promises.appendFile('logs.txt', logEntry);
-}
-
-// Fungsi untuk mendapatkan waktu lokal GMT+7
-function getLocalTimeGMT7() {
-  const date = new Date();
+// Fungsi untuk mendapatkan timestamp dalam format JAM: HH:mm:ss GMT+7
+function getCurrentTimestampGMT7() {
   const options = {
-    timeZone: 'Asia/Jakarta', // Zona waktu GMT+7
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    timeZone: 'Asia/Bangkok', // GMT+7
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false
+    hour12: false,
   };
-  return new Intl.DateTimeFormat('en-GB', options).format(date);
+  
+  const timeParts = new Intl.DateTimeFormat('en-US', options).formatToParts(new Date());
+  const timestamp = `${timeParts[0].value}:${timeParts[2].value}:${timeParts[4].value}`; // Mengambil jam, menit, dan detik
+  return `JAM: ${timestamp}`; // Format akhir
+}
+
+// Log function
+async function logMessage(message) {
+  const timestamp = getCurrentTimestampGMT7(); // Mendapatkan timestamp
+  const logEntry = `${timestamp} - ${message}\n`; // Menyertakan timestamp dalam log
+  await fs.promises.appendFile('logs.txt', logEntry);
 }
 
 const rl = readline.createInterface({
@@ -66,7 +66,7 @@ async function connectWebSocket(userId) {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = async () => {
-    const connectionTime = new Date().toISOString();
+    const connectionTime = getCurrentTimestampGMT7();
     await setLocalStorage({ lastUpdated: connectionTime });
     console.log("WebSocket connected at", connectionTime);
     await logMessage(`WebSocket connected at ${connectionTime}`);
@@ -76,8 +76,8 @@ async function connectWebSocket(userId) {
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-    console.log(`Received message at ${getLocalTimeGMT7()}:`, data);
-    await logMessage(`Received message at ${getLocalTimeGMT7()}: ${JSON.stringify(data)}`);
+    console.log("Received message from WebSocket:", data);
+    await logMessage(`Received message: ${JSON.stringify(data)}`);
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
       const lastUpdated = new Date().toISOString();
       await setLocalStorage({
@@ -128,15 +128,6 @@ function stopPinging() {
     clearInterval(pingInterval);
     pingInterval = null;
   }
-}
-
-// Fungsi untuk memperbarui dan menampilkan waktu setiap detik
-function updateAndDisplayTime() {
-  setInterval(() => {
-    const currentTime = getLocalTimeGMT7();
-    console.clear(); // Bersihkan konsol untuk menampilkan waktu baru
-    console.log(`Current Time (GMT+7): ${currentTime}`); // Tampilkan waktu saat ini
-  }, 1000); // Perbarui setiap detik
 }
 
 process.on('SIGINT', () => {
@@ -210,7 +201,7 @@ async function getUserId() {
 
     const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
     const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
     rl.question('Email: ', (email) => {
       rl.question('Password: ', async (password) => {
@@ -228,19 +219,27 @@ async function getUserId() {
           const userId = response.data.user.id;
           console.log('User ID:', userId);
           await logMessage(`User ID: ${userId}`);
-          await setLocalStorage({ userId: userId });
+
+          const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
+          const profileResponse = await axios.get(profileUrl, {
+            headers: {
+              'Authorization': authorization,
+              'apikey': apikey
+            }
+          });
+
+          const personalCode = profileResponse.data[0].personal_code;
+          console.log('Personal Code:', personalCode);
+          await logMessage(`Personal Code: ${personalCode}`);
+
           await connectWebSocket(userId);
         } catch (error) {
-          console.error('Error fetching user ID or profile:', error);
-          await logMessage(`Error fetching user ID or profile: ${error}`);
-        } finally {
-          rl.close();
+          console.error('Error during login:', error);
+          await logMessage(`Error during login: ${error}`);
         }
       });
     });
   });
 }
 
-// Memulai pembaruan dan tampilan waktu
-updateAndDisplayTime(); // Tambahkan pemanggilan fungsi untuk memperbarui dan menampilkan waktu
 getUserId();
