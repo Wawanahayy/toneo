@@ -12,7 +12,8 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
-let currentFormattedTime = getFormattedTimestamp(new Date()); // Inisialisasi waktu awal
+let clockInterval;
+let currentFormattedTime = getFormattedTimestamp(new Date()); // Menyimpan waktu terbaru
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -78,14 +79,13 @@ async function connectWebSocket(userId) {
     const data = JSON.parse(event.data);
     const messageDate = new Date(data.date);
 
-    // Cetak waktu terkini saat ada pesan WebSocket
-    console.log("\n[Current Time]", currentFormattedTime);
-
-    console.log("\n[Received message from WebSocket]:", {
+    // Cetak waktu terbaru dan pesan WebSocket hanya saat ada pesan baru
+    console.log("[Current Time]", currentFormattedTime);
+    console.log("[Received message from WebSocket]:", {
       ...data,
-      JAM: getFormattedTimestamp(messageDate)
+      JAM: getFormattedTimestamp(messageDate) // Tampilkan jam pesan yang diterima
     });
-    
+
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
       const lastUpdated = new Date().toISOString();
       await setLocalStorage({
@@ -119,13 +119,11 @@ function disconnectWebSocket() {
   }
 }
 
-let clockInterval;
-
 function startUpdatingClock() {
-  // Set interval untuk memperbarui waktu setiap detik tanpa mencetak
+  // Set interval untuk memperbarui waktu setiap detik tanpa mencetak ke konsol
   clockInterval = setInterval(() => {
     const now = new Date();
-    currentFormattedTime = getFormattedTimestamp(now);
+    currentFormattedTime = getFormattedTimestamp(now); // Update waktu terbaru
   }, 1000);
 }
 
@@ -249,12 +247,14 @@ async function getUserId() {
             }
           });
 
-          const personalCode = profileResponse.data[0]?.personal_code || "";
+          const personalCode = profileResponse.data[0].personal_code;
           console.log('Personal Code:', personalCode);
 
           await connectWebSocket(personalCode);
         } catch (error) {
-          console.error('Error:', error);
+          console.error('Error getting user ID:', error);
+        } finally {
+          rl.close();
         }
       });
     });
