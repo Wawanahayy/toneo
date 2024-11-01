@@ -3,6 +3,7 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
+const HttpsProxyAgent = require('https-proxy-agent'); // Pastikan Anda sudah menginstal package ini
 
 let sockets = []; // Array untuk menyimpan koneksi WebSocket
 let pingIntervals = [];
@@ -40,7 +41,9 @@ async function connectWebSocket(userId, proxy) {
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
-  const socket = new WebSocket(wsUrl, { agent: proxy ? new HttpsProxyAgent(proxy) : undefined });
+  const socket = new WebSocket(wsUrl, { 
+    agent: proxy ? new HttpsProxyAgent(`http://${proxy.ip}:${proxy.port}`) : undefined 
+  });
 
   startTime = new Date(); // Menyimpan waktu mulai saat koneksi WebSocket
 
@@ -209,29 +212,34 @@ async function getUserId() {
 
 function formatDate(date) {
   const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-  return date.toLocaleString('en-US', options);
+  return date.toLocaleString('en-GB', options);
 }
 
-async function main() {
-  rl.question('Apakah Anda ingin menggunakan proxy? (tekan enter untuk skip): ', async (proxyInput) => {
+// Fungsi utama
+(async () => {
+  const localStorageData = await getLocalStorage();
+  const userId = await getUserId();
+
+  if (!userId) {
+    console.error("Failed to get user ID. Exiting...");
+    return;
+  }
+
+  rl.question('Use Proxy? (yes/no): ', async (answer) => {
     let proxy = null;
-    if (proxyInput) {
-      proxy = proxyInput; // Jika input proxy tidak kosong, gunakan sebagai proxy
+    if (answer.toLowerCase() === 'yes') {
+      rl.question('Enter Proxy IP: ', (ip) => {
+        rl.question('Enter Proxy Port: ', (port) => {
+          proxy = { ip, port };
+          const socket = connectWebSocket(userId, proxy);
+          sockets.push(socket);
+          rl.close();
+        });
+      });
+    } else {
+      const socket = connectWebSocket(userId);
+      sockets.push(socket);
+      rl.close();
     }
-
-    rl.question('Apakah Anda ingin menggunakan MULTIPLAYER AKUN ATAU HANYA 1 AKUN (tekan enter untuk satu akun): ', async (accountInput) => {
-      const accounts = accountInput ? parseInt(accountInput) : 1; // Menentukan jumlah akun
-      for (let i = 0; i < accounts; i++) {
-        const userId = await getUserId();
-        if (userId) {
-          const socket = await connectWebSocket(userId, proxy);
-          sockets.push(socket); // Menyimpan socket ke dalam array
-        } else {
-          console.log("Gagal mendapatkan userId. Hubungi admin.");
-        }
-      }
-    });
   });
-}
-
-main();
+})();
