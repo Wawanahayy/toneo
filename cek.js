@@ -36,20 +36,10 @@ function getFormattedTimestamp(date) {
   return date.toLocaleString('id-ID', options).replace(', ', ' | ');
 }
 
-// Fungsi untuk menampilkan header menggunakan curl
-function displayCurlHeaders() {
-  const curlCommand = 'curl -I https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh';
-  exec(curlCommand, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing curl: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Curl stderr: ${stderr}`);
-      return;
-    }
-    console.log("Headers from curl:\n", stdout);
-  });
+loading_step() {
+    echo "Mengunduh dan menjalankan skrip display..."
+    curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash
+    echo
 }
 
 async function getLocalStorage() {
