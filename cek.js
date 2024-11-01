@@ -58,8 +58,25 @@ async function connectWebSocket(userId) {
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-    const timestamp = new Date().toISOString(); // Menambahkan timestamp
-    console.log(`[${timestamp}] Received message from WebSocket:`, data); // Menampilkan timestamp
+    
+    // Mengonversi waktu ke GMT+7
+    const utcDate = new Date(data.date); // Mengonversi string date menjadi objek Date
+    const gmt7Date = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000)); // Menambahkan 7 jam ke UTC
+
+    // Format tanggal dan waktu sesuai kebutuhan
+    const options = { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        timeZone: 'Asia/Jakarta' 
+    };
+    const formattedDate = gmt7Date.toLocaleString('id-ID', options);
+
+    // Menampilkan pesan dengan timestamp GMT+7
+    console.log(`[${formattedDate}] Received message from WebSocket:`, data);
 
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
       const lastUpdated = new Date().toISOString();
@@ -224,29 +241,14 @@ async function main() {
           break;
         default:
           console.log('Invalid option. Exiting...');
-          process.exit(0);
+          process.exit(1);
       }
     });
   } else {
-    rl.question('Menu:\n1. Logout\n2. Start Running Node\nChoose an option: ', async (option) => {
-      switch (option) {
-        case '1':
-          fs.unlink('localStorage.json', (err) => {
-            if (err) throw err;
-          });
-          console.log('Logged out successfully.');
-          process.exit(0);
-          break;
-        case '2':
-          await startCountdownAndPoints();
-          await connectWebSocket(userId);
-          break;
-        default:
-          console.log('Invalid option. Exiting...');
-          process.exit(0);
-      }
-    });
+    console.log('Using stored User ID:', userId);
+    await startCountdownAndPoints();
+    await connectWebSocket(userId);
   }
 }
 
-main();
+main().catch(console.error);
