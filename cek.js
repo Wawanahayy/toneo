@@ -3,7 +3,6 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
-const { exec } = require('child_process'); // Untuk menjalankan curl
 
 let socket = null;
 let pingInterval;
@@ -36,21 +35,6 @@ function getFormattedTimestamp(date) {
   return date.toLocaleString('id-ID', options).replace(', ', ' | ');
 }
 
-function loading_step() {
-  console.log("Mengunduh dan menjalankan skrip display...");
-  exec('curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`stderr: ${stderr}`);
-      return;
-    }
-    console.log(`stdout: ${stdout}`);
-  });
-  console.log();
-}
 
 
 async function getLocalStorage() {
