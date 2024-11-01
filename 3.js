@@ -34,10 +34,10 @@ async function setLocalStorage(data) {
     await writeFileAsync('localStorage.json', JSON.stringify(newData));
 }
 
-async function connectWebSocket(email) {
+async function connectWebSocket(email, password) {
     if (socket) return;
     const url = "wss://secure.ws.teneo.pro";
-    const wsUrl = `${url}/websocket?email=${encodeURIComponent(email)}`;
+    const wsUrl = `${url}/websocket?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
     socket = new WebSocket(wsUrl);
 
     socket.onopen = async () => {
@@ -119,5 +119,7 @@ process.on('SIGINT', () => {
 });
 
 rl.question("Masukkan email: ", (email) => {
-    connectWebSocket(email);
+    rl.question("Masukkan sandi: ", (password) => {
+        connectWebSocket(email, password);
+    });
 });
