@@ -7,9 +7,7 @@ const axios = require('axios');
 let socket = null;
 let pingInterval;
 let countdownInterval;
-let logInterval;
 let potentialPoints = 0;
-let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
 
@@ -20,8 +18,6 @@ const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
-
-
 
 // Mengambil dan menyimpan data lokal
 async function getLocalStorage() {
@@ -48,10 +44,8 @@ async function connectWebSocket(userId) {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = async () => {
-    console.log("WebSocket connected");
     startPinging();
     startCountdownAndPoints();
-    startLogUpdates();
   };
 
   socket.onmessage = async (event) => {
@@ -64,13 +58,10 @@ async function connectWebSocket(userId) {
       pointsTotal = data.pointsTotal;
       pointsToday = data.pointsToday;
     }
-    updateBlinkingColorMessage(); // Update message on receiving new data
   };
 
   socket.onclose = () => {
-    console.log("WebSocket disconnected");
     stopPinging();
-    stopLogUpdates();
     reconnectWebSocket(userId); // Attempt to reconnect
   };
 
@@ -80,7 +71,6 @@ async function connectWebSocket(userId) {
 }
 
 function reconnectWebSocket(userId) {
-  console.log("Attempting to reconnect...");
   setTimeout(() => connectWebSocket(userId), 5000); // Reconnect after 5 seconds
 }
 
@@ -89,7 +79,6 @@ function disconnectWebSocket() {
     socket.close();
     socket = null;
     stopPinging();
-    stopLogUpdates();
   }
 }
 
@@ -110,74 +99,19 @@ function stopPinging() {
   }
 }
 
-function startLogUpdates() {
-  stopLogUpdates();
-  logInterval = setInterval(async () => {
-    const localStorageData = await getLocalStorage();
-    console.log(`Log Update: \n - Points Today: ${localStorageData.pointsToday || 0} \n - Points Total: ${localStorageData.pointsTotal || 0} \n - Potential Points: ${potentialPoints}`);
-  }, 300000);
-}
-
-function stopLogUpdates() {
-  if (logInterval) {
-    clearInterval(logInterval);
-    logInterval = null;
-  }
-}
-
 process.on('SIGINT', () => {
   console.log('Stopping...');
   stopPinging();
-  stopLogUpdates();
   disconnectWebSocket();
   process.exit(0);
 });
-
-let currentColorIndex = 0; // Menyimpan indeks warna saat ini
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m']; // Warna yang akan digunakan
-
-function updateBlinkingColorMessage() {
-  console.clear(); 
-  const currentTime = formatDate(new Date());
-  const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
-  console.log(`---------------------`);
-  console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
-  console.log(`TIME RUN: ${elapsedTime()}`); // Menampilkan elapsed time
-  console.log(`---------------------`);
-
-  currentColorIndex = (currentColorIndex + 1) % colors.length; // Mengatur indeks warna untuk warna berikutnya
-}
 
 let startTime; // Menyimpan waktu saat WebSocket terhubung
 function startCountdownAndPoints() {
   clearInterval(countdownInterval);
   startTime = new Date(); // Simpan waktu saat WebSocket terhubung
-  updateCountdownAndPoints();
   countdownInterval = setInterval(() => {
     updateCountdownAndPoints();
-    updateBlinkingColorMessage(); // Memperbarui pesan berkedip setiap detik
-  }, 1000);
-}
-
-function elapsedTime() {
-  if (!startTime) return "00:00"; // Jika tidak ada waktu mulai
-  const now = new Date();
-  const diff = Math.floor((now - startTime) / 1000); // Dalam detik
-  const minutes = String(Math.floor(diff / 60)).padStart(2, '0');
-  const seconds = String(diff % 60).padStart(2, '0');
-  return `${minutes}:${seconds}`;
-}
-
-
-function startCountdownAndPoints() {
-  clearInterval(countdownInterval);
-  countdownInterval = setInterval(() => {
-    updateCountdownAndPoints();
-    updateBlinkingColorMessage();
   }, 1000);
 }
 
@@ -203,13 +137,8 @@ async function getUserId() {
   });
 }
 
-function formatDate(date) {
-  return date.toISOString().replace('T', ' ').split('.')[0];
-}
-
 // Mulai aplikasi
 (async () => {
-  await displayHeader();
   const localStorageData = await getLocalStorage();
   if (localStorageData.userId) {
     await connectWebSocket(localStorageData.userId);
