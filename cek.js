@@ -62,33 +62,16 @@ async function connectWebSocket(userId) {
     const data = JSON.parse(event.data);
     console.log("Received message from WebSocket:", data);
     await logMessage(`Received message: ${JSON.stringify(data)}`);
-
-    // Ambil waktu saat ini
-    const currentTime = new Date().toLocaleString();
-
-    // Jika data tersedia, perbarui poin dan tampilkan log
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-      // Update total poin
-      pointsTotal = data.pointsTotal;
-      pointsToday = data.pointsToday;
-
       const lastUpdated = new Date().toISOString();
       await setLocalStorage({
         lastUpdated: lastUpdated,
-        pointsTotal: pointsTotal,
-        pointsToday: pointsToday,
+        pointsTotal: data.pointsTotal,
+        pointsToday: data.pointsToday,
       });
-
-      // Log poin update
-      const logUpdate = `POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | TOTAL POINT: ${pointsTotal} | JAM: ${currentTime}`;
-      console.log(logUpdate); // Tampilkan di console
-      await logMessage(logUpdate); // Simpan di log
-
-      // Menunda log selama 5 menit
-      setTimeout(async () => {
-        const delayedLog = `Delayed log: ${JSON.stringify(data)}`;
-        await logMessage(delayedLog); // Simpan log tertunda
-      }, 300000); // 5 menit dalam milidetik
+      pointsTotal = data.pointsTotal;
+      pointsToday = data.pointsToday;
+      await logMessage(`Points updated - Total: ${pointsTotal}, Today: ${pointsToday}`);
     }
   };
 
@@ -119,7 +102,13 @@ function startPinging() {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "PING" }));
       await setLocalStorage({ lastPingDate: new Date().toISOString() });
-      await logMessage('PING sent');
+      // Log pengiriman PING dengan penundaan 3 menit
+      setTimeout(async () => {
+        const gmtPlus7Time = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+        const logMessageFormat = `${gmtPlus7Time} | PING sent..! | pointsToday: ${pointsToday} | pointsTotal: ${pointsTotal}`;
+        await logMessage(logMessageFormat);
+        console.log(logMessageFormat); // Tampilkan di konsol jika diinginkan
+      }, 3 * 60 * 1000); // 3 menit dalam milidetik
     }
   }, 10000);
 }
@@ -201,8 +190,8 @@ async function getUserId() {
     logMessage(`Display script output: ${stdout}`);
 
     const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
     rl.question('Email: ', (email) => {
       rl.question('Password: ', async (password) => {
@@ -229,14 +218,13 @@ async function getUserId() {
             }
           });
 
-          const userProfile = profileResponse.data[0];
-          console.log('User Profile:', userProfile);
-          await logMessage(`User Profile: ${JSON.stringify(userProfile)}`);
+          console.log('Profile Data:', profileResponse.data);
+          await logMessage(`Profile Data: ${JSON.stringify(profileResponse.data)}`);
 
-          await connectWebSocket(userProfile.personal_code);
+          await connectWebSocket(userId);
         } catch (error) {
-          console.error('Error fetching user ID:', error);
-          await logMessage(`Error fetching user ID: ${error}`);
+          console.error('Error:', error.message);
+          await logMessage(`Error: ${error.message}`);
         } finally {
           rl.close();
         }
@@ -245,5 +233,4 @@ async function getUserId() {
   });
 }
 
-// Menjalankan fungsi untuk mendapatkan User ID
 getUserId();
