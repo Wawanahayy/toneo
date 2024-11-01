@@ -3,6 +3,7 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
+const { exec } = require('child_process'); // Tambahkan ini di bagian atas
 
 let socket = null;
 let pingInterval;
@@ -21,10 +22,19 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-// Menampilkan header menggunakan curl
-const displayHeader = async () => {
-  const header = await axios.get('https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh');
-  console.log(header.data);
+// Ganti fungsi displayHeader
+const displayHeader = () => {
+  exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error executing header display: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Error: ${stderr}`);
+      return;
+    }
+    console.log(stdout); // Menampilkan output dari perintah
+  });
 };
 
 async function getLocalStorage() {
@@ -161,10 +171,8 @@ function updateBlinkingColorMessage() {
   console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
   console.log(`---------------------`);
 
-
   currentColorIndex = (currentColorIndex + 1) % colors.length; // Mengatur indeks warna untuk warna berikutnya
 }
-
 
 function startCountdownAndPoints() {
   clearInterval(countdownInterval);
@@ -217,38 +225,30 @@ async function getUserId() {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-
-  rl.question('Email: ', (email) => {
-    rl.question('Password: ', async (password) => {
-      try {
-        const response = await axios.post(loginUrl, { email, password }, {
-          headers: {
-            "Authorization": authorization,
-            "apikey": apikey
-          }
-        });
-        const userId = response.data.user.id;
-        await setLocalStorage({ userId });
-        await connectWebSocket(userId);
-        rl.close(); // Tutup readline interface setelah mendapatkan userId
-      } catch (error) {
-        console.error("Error during login:", error.message);
+  
+  try {
+    const response = await axios.post(loginUrl, {
+      email: 'admin@jawa-pride.com',
+      password: 'Admin1234!'
+    }, {
+      headers: {
+        'Authorization': authorization,
+        'apikey': apikey,
+        'Content-Type': 'application/json'
       }
     });
-  });
+    const userId = response.data.user.id;
+    console.log(`User ID: ${userId}`);
+    await connectWebSocket(userId);
+  } catch (error) {
+    console.error('Error getting user ID:', error);
+  }
 }
 
 function formatDate(date) {
-  return date.toISOString().replace('T', ' ').split('.')[0];
+  return date.toISOString().replace('T', ' ').substring(0, 19);
 }
 
-// Mulai aplikasi
-(async () => {
-  await displayHeader();
-  const localStorageData = await getLocalStorage();
-  if (localStorageData.userId) {
-    await connectWebSocket(localStorageData.userId);
-  } else {
-    await getUserId();
-  }
-})();
+// Panggil fungsi displayHeader saat memulai
+displayHeader();
+getUserId();
