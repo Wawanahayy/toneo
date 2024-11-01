@@ -9,7 +9,6 @@ let pingInterval;
 let countdownInterval;
 let logInterval;
 let potentialPoints = 0;
-let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
 
@@ -144,6 +143,17 @@ process.on('SIGINT', () => {
 let currentColorIndex = 0; // Menyimpan indeks warna saat ini
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m']; // Warna yang akan digunakan
 
+let startTime; // Menyimpan waktu saat WebSocket terhubung
+function startCountdownAndPoints() {
+  clearInterval(countdownInterval);
+  startTime = new Date(); // Simpan waktu saat WebSocket terhubung
+  updateCountdownAndPoints();
+  countdownInterval = setInterval(() => {
+    updateCountdownAndPoints();
+    updateBlinkingColorMessage(); // Memperbarui pesan berkedip setiap detik
+  }, 1000);
+}
+
 function updateBlinkingColorMessage() {
   console.clear(); 
   const currentTime = formatDate(new Date());
@@ -160,17 +170,6 @@ function updateBlinkingColorMessage() {
   currentColorIndex = (currentColorIndex + 1) % colors.length; // Mengatur indeks warna untuk warna berikutnya
 }
 
-let startTime; // Menyimpan waktu saat WebSocket terhubung
-function startCountdownAndPoints() {
-  clearInterval(countdownInterval);
-  startTime = new Date(); // Simpan waktu saat WebSocket terhubung
-  updateCountdownAndPoints();
-  countdownInterval = setInterval(() => {
-    updateCountdownAndPoints();
-    updateBlinkingColorMessage(); // Memperbarui pesan berkedip setiap detik
-  }, 1000);
-}
-
 function elapsedTime() {
   if (!startTime) return "00:00"; // Jika tidak ada waktu mulai
   const now = new Date();
@@ -178,15 +177,6 @@ function elapsedTime() {
   const minutes = String(Math.floor(diff / 60)).padStart(2, '0');
   const seconds = String(diff % 60).padStart(2, '0');
   return `${minutes}:${seconds}`;
-}
-
-
-function startCountdownAndPoints() {
-  clearInterval(countdownInterval);
-  countdownInterval = setInterval(() => {
-    updateCountdownAndPoints();
-    updateBlinkingColorMessage();
-  }, 1000);
 }
 
 async function updateCountdownAndPoints() {
