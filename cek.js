@@ -3,11 +3,12 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
-const { exec } = require('child_process'); // Import exec untuk menjalankan perintah
+const { exec } = require('child_process');
 
 let socket = null;
 let pingInterval;
 let countdownInterval;
+let displayInterval; // Untuk jam berjalan
 let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
@@ -19,7 +20,7 @@ const writeFileAsync = promisify(fs.writeFile);
 // Fungsi untuk mendapatkan timestamp dalam format JAM: HH:mm:ss GMT+7
 function getCurrentTimestampGMT7() {
   const options = {
-    timeZone: 'Asia/Bangkok', // GMT+7
+    timeZone: 'Asia/Bangkok',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -27,15 +28,27 @@ function getCurrentTimestampGMT7() {
   };
   
   const timeParts = new Intl.DateTimeFormat('en-US', options).formatToParts(new Date());
-  const timestamp = `${timeParts[0].value}:${timeParts[2].value}:${timeParts[4].value}`; // Mengambil jam, menit, dan detik
-  return `JAM: ${timestamp}`; // Format akhir
+  const timestamp = `${timeParts[0].value}:${timeParts[2].value}:${timeParts[4].value}`;
+  return `JAM: ${timestamp}`;
 }
 
 // Log function
 async function logMessage(message) {
-  const timestamp = getCurrentTimestampGMT7(); // Mendapatkan timestamp
-  const logEntry = `${timestamp} - ${message}\n`; // Menyertakan timestamp dalam log
+  const timestamp = getCurrentTimestampGMT7();
+  const logEntry = `${timestamp} - ${message}\n`;
   await fs.promises.appendFile('logs.txt', logEntry);
+}
+
+// Fungsi untuk memperbarui jam di konsol
+function startDisplayClock() {
+  displayInterval = setInterval(() => {
+    const currentTime = getCurrentTimestampGMT7();
+    process.stdout.write(`\r${currentTime} `); // Menampilkan jam di baris yang sama
+  }, 1000);
+}
+
+function stopDisplayClock() {
+  clearInterval(displayInterval);
 }
 
 const rl = readline.createInterface({
@@ -70,8 +83,10 @@ async function connectWebSocket(userId) {
     await setLocalStorage({ lastUpdated: connectionTime });
     console.log("WebSocket connected at", connectionTime);
     await logMessage(`WebSocket connected at ${connectionTime}`);
+    
     startPinging();
     startCountdownAndPoints();
+    startDisplayClock(); // Mulai menampilkan jam berjalan
   };
 
   socket.onmessage = async (event) => {
@@ -96,6 +111,7 @@ async function connectWebSocket(userId) {
     console.log("WebSocket disconnected");
     logMessage("WebSocket disconnected");
     stopPinging();
+    stopDisplayClock(); // Hentikan jam berjalan
   };
 
   socket.onerror = (error) => {
@@ -109,6 +125,7 @@ function disconnectWebSocket() {
     socket.close();
     socket = null;
     stopPinging();
+    stopDisplayClock(); // Hentikan jam berjalan
   }
 }
 
@@ -135,6 +152,7 @@ process.on('SIGINT', () => {
   logMessage('Received SIGINT. Stopping pinging...');
   stopPinging();
   disconnectWebSocket();
+  stopDisplayClock(); // Hentikan jam berjalan
   process.exit(0);
 });
 
@@ -184,7 +202,6 @@ async function updateCountdownAndPoints() {
 }
 
 async function getUserId() {
-  // Menampilkan header menggunakan curl
   exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing display.sh: ${error.message}`);
@@ -196,48 +213,32 @@ async function getUserId() {
       logMessage(`Error: ${stderr}`);
       return;
     }
-    console.log(stdout); // Tampilkan output dari display.sh
+    console.log(stdout);
     logMessage(`Display script output: ${stdout}`);
 
     const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5LnN1cGFibGUuY29yZSIsImlhdCI6MTY5MjM4NTE2MywiZXhwIjoxOTQ3NTQ1MTYzfQ.m0uHuyjGH_w27fyB_q9xV1SyHMIeRCPwX9ZhZc-AN0I";
+    const apikey = "YOUR_API_KEY";
 
-    rl.question('Email: ', (email) => {
-      rl.question('Password: ', async (password) => {
-        try {
-          const response = await axios.post(loginUrl, {
-            email: email,
-            password: password
-          }, {
-            headers: {
-              'Authorization': authorization,
-              'apikey': apikey
-            }
-          });
+    rl.question('Masukkan User ID: ', async (userId) => {
+      try {
+        const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?user_id=eq.${userId}`;
+        const profileResponse = await axios.get(profileUrl, {
+          headers: {
+            'Authorization': authorization,
+            'apikey': apikey
+          }
+        });
 
-          const userId = response.data.user.id;
-          console.log('User ID:', userId);
-          await logMessage(`User ID: ${userId}`);
+        const personalCode = profileResponse.data[0].personal_code;
+        console.log('Personal Code:', personalCode);
+        await logMessage(`Personal Code: ${personalCode}`);
 
-          const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
-          const profileResponse = await axios.get(profileUrl, {
-            headers: {
-              'Authorization': authorization,
-              'apikey': apikey
-            }
-          });
-
-          const personalCode = profileResponse.data[0].personal_code;
-          console.log('Personal Code:', personalCode);
-          await logMessage(`Personal Code: ${personalCode}`);
-
-          await connectWebSocket(userId);
-        } catch (error) {
-          console.error('Error during login:', error);
-          await logMessage(`Error during login: ${error}`);
-        }
-      });
+        await connectWebSocket(userId);
+      } catch (error) {
+        console.error('Error during login:', error);
+        await logMessage(`Error during login: ${error}`);
+      }
     });
   });
 }
