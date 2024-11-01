@@ -57,6 +57,7 @@ async function connectWebSocket(userId) {
     startPinging();
     startCountdownAndPoints();
     startLogUpdates(); // Mulai mencetak log setiap 5 menit
+    console.log("Telegram: @AirdropJP_JawaPride"); // Menampilkan kontak Telegram
   };
 
   socket.onmessage = async (event) => {
@@ -146,29 +147,10 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-let currentColorIndex = 0; // Menyimpan indeks warna saat ini
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m']; // Warna yang akan digunakan
-
-function updateBlinkingColorMessage() {
-  console.clear(); // Menghapus konsol
-  const currentTime = formatDate(new Date());
-  console.log(`---------------------`);
-  console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); // Mengubah warna untuk waktu
-  console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); // Mengubah warna untuk poin hari ini
-  console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); // Mengubah warna untuk total poin
-  console.log(`---------------------`);
-
-  // Mengubah warna untuk iterasi berikutnya
-  currentColorIndex = (currentColorIndex + 1) % colors.length; // Mengatur indeks warna untuk warna berikutnya
-}
-
 function startCountdownAndPoints() {
   clearInterval(countdownInterval);
   updateCountdownAndPoints();
-  countdownInterval = setInterval(() => {
-    updateCountdownAndPoints();
-    updateBlinkingColorMessage(); // Memperbarui pesan berkedip setiap detik
-  }, 1000);
+  countdownInterval = setInterval(updateCountdownAndPoints, 1000);
 }
 
 async function updateCountdownAndPoints() {
@@ -217,34 +199,55 @@ async function getUserId() {
   rl.question('Email: ', (email) => {
     rl.question('Password: ', async (password) => {
       try {
-        const response = await axios.post(loginUrl, { email, password }, {
+        const response = await axios.post(loginUrl, {
+          email: email,
+          password: password
+        }, {
           headers: {
-            "Authorization": authorization,
-            "apikey": apikey
+            'Authorization': authorization,
+            'apikey': apikey
           }
         });
+
         const userId = response.data.user.id;
+        console.log('User ID:', userId);
+
+        const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
+        const profileResponse = await axios.get(profileUrl, {
+          headers: {
+            'Authorization': authorization,
+            'apikey': apikey
+          }
+        });
+
+        console.log('Profile Data:', profileResponse.data);
         await setLocalStorage({ userId });
+        await startCountdownAndPoints();
         await connectWebSocket(userId);
-        rl.close(); // Tutup readline interface setelah mendapatkan userId
       } catch (error) {
-        console.error("Error during login:", error.message);
+        console.error('Error:', error.response ? error.response.data : error.message);
+      } finally {
+        rl.close();
       }
     });
   });
 }
 
 function formatDate(date) {
-  return date.toISOString().replace('T', ' ').split('.')[0];
+  const options = { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit', 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit', 
+    hour12: false 
+  };
+  return date.toLocaleString('en-US', options);
 }
 
-// Mulai aplikasi
+// Mulai program
 (async () => {
   await displayHeader();
-  const localStorageData = await getLocalStorage();
-  if (localStorageData.userId) {
-    await connectWebSocket(localStorageData.userId);
-  } else {
-    await getUserId();
-  }
+  await getUserId();
 })();
