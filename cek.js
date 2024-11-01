@@ -3,7 +3,6 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
-const { exec } = require('child_process');
 
 let socket = null;
 let pingInterval;
@@ -12,8 +11,6 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
-let clockInterval;
-let currentFormattedTime = getFormattedTimestamp(new Date()); // Menyimpan waktu terbaru
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -23,25 +20,11 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-// Fungsi untuk mendapatkan timestamp GMT+7
-function getFormattedTimestamp(date) {
-  const options = {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    timeZone: 'Asia/Bangkok', // GMT+7
-    timeZoneName: 'short'
-  };
-  return date.toLocaleString('id-ID', options).replace(', ', ' | ');
-}
-
-// Fungsi untuk menunggu selama 3 detik
-function delay(seconds) {
-  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
-}
+// Menampilkan header menggunakan curl
+const displayHeader = async () => {
+  const header = await axios.get('https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh');
+  console.log(header.data);
+};
 
 async function getLocalStorage() {
   try {
@@ -66,25 +49,17 @@ async function connectWebSocket(userId) {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = async () => {
-    const connectionTime = new Date();
-    await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
-    console.log("WebSocket connected at", connectionTime.toISOString());
-
-    startUpdatingClock();
+    const connectionTime = new Date().toISOString();
+    await setLocalStorage({ lastUpdated: connectionTime });
+    console.log("WebSocket connected at", connectionTime);
     startPinging();
     startCountdownAndPoints();
   };
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-    const messageDate = new Date(data.date);
-
-    // Cetak waktu terbaru dan pesan WebSocket hanya saat ada pesan baru
-    console.log("[Current Time]", currentFormattedTime);
-    console.log("[Received message from WebSocket]:", {
-      ...data,
-      JAM: getFormattedTimestamp(messageDate) // Tampilkan jam pesan yang diterima
-    });
+    const timestamp = new Date().toISOString(); // Menambahkan timestamp
+    console.log(`[${timestamp}] Received message from WebSocket:`, data); // Menampilkan timestamp
 
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
       const lastUpdated = new Date().toISOString();
@@ -102,7 +77,6 @@ async function connectWebSocket(userId) {
     socket = null;
     console.log("WebSocket disconnected");
     stopPinging();
-    stopUpdatingClock();
   };
 
   socket.onerror = (error) => {
@@ -115,22 +89,6 @@ function disconnectWebSocket() {
     socket.close();
     socket = null;
     stopPinging();
-    stopUpdatingClock();
-  }
-}
-
-function startUpdatingClock() {
-  // Set interval untuk memperbarui waktu setiap detik tanpa mencetak ke konsol
-  clockInterval = setInterval(() => {
-    const now = new Date();
-    currentFormattedTime = getFormattedTimestamp(now); // Update waktu terbaru
-  }, 1000);
-}
-
-function stopUpdatingClock() {
-  if (clockInterval) {
-    clearInterval(clockInterval);
-    clockInterval = null;
   }
 }
 
@@ -152,9 +110,8 @@ function stopPinging() {
 }
 
 process.on('SIGINT', () => {
-  console.log('Received SIGINT. Stopping pinging and clock...');
+  console.log('Received SIGINT. Stopping pinging...');
   stopPinging();
-  stopUpdatingClock();
   disconnectWebSocket();
   process.exit(0);
 });
@@ -184,7 +141,6 @@ async function updateCountdownAndPoints() {
       let newPoints = Math.min(maxPoints, (timeElapsedMinutes / 15) * maxPoints);
       newPoints = parseFloat(newPoints.toFixed(2));
 
-      // Memberikan bonus acak dengan probabilitas 10%
       if (Math.random() < 0.1) {
         const bonus = Math.random() * 2;
         newPoints = Math.min(maxPoints, newPoints + bonus);
@@ -205,62 +161,92 @@ async function updateCountdownAndPoints() {
 }
 
 async function getUserId() {
-  // Eksekusi skrip display terlebih dahulu
-  exec('curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash', async (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing curl: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Error in display script: ${stderr}`);
-      return;
-    }
-    console.log(`Display Script Output:\n${stdout}`);
+  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-    // Delay selama 3 detik setelah eksekusi display.sh
-    await delay(3);
-
-    const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-
-    rl.question('Email: ', (email) => {
-      rl.question('Password: ', async (password) => {
-        try {
-          const response = await axios.post(loginUrl, {
-            email: email,
-            password: password
-          }, {
-            headers: {
-              'Authorization': authorization,
-              'apikey': apikey
-            }
-          });
-
-          const userId = response.data.user.id;
-          console.log('User ID:', userId);
-
-          const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
-          const profileResponse = await axios.get(profileUrl, {
-            headers: {
-              'Authorization': authorization,
-              'apikey': apikey
-            }
-          });
-
-          const personalCode = profileResponse.data[0]?.personal_code;
-          if (personalCode) {
-            console.log('Personal Code:', personalCode);
-            await connectWebSocket(personalCode);
-          } else {
-            console.log('Personal Code not found');
+  rl.question('Email: ', (email) => {
+    rl.question('Password: ', async (password) => {
+      try {
+        const response = await axios.post(loginUrl, {
+          email: email,
+          password: password
+        }, {
+          headers: {
+            'Authorization': authorization,
+            'apikey': apikey
           }
-        } catch (error) {
-          console.error('Error fetching user ID:', error);
-        }
-      });
+        });
+
+        const userId = response.data.user.id;
+        console.log('User ID:', userId);
+
+        const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
+        const profileResponse = await axios.get(profileUrl, {
+          headers: {
+            'Authorization': authorization,
+            'apikey': apikey
+          }
+        });
+
+        console.log('Profile Data:', profileResponse.data);
+        await setLocalStorage({ userId });
+        await startCountdownAndPoints();
+        await connectWebSocket(userId);
+      } catch (error) {
+        console.error('Error:', error.response ? error.response.data : error.message);
+      } finally {
+        rl.close();
+      }
     });
   });
 }
 
-getUserId();
+async function main() {
+  await displayHeader(); // Menampilkan header saat program dijalankan
+  const localStorageData = await getLocalStorage();
+  let userId = localStorageData.userId;
+
+  if (!userId) {
+    rl.question('User ID not found. Would you like to:\n1. Login to your account\n2. Enter User ID manually\nChoose an option: ', async (option) => {
+      switch (option) {
+        case '1':
+          await getUserId();
+          break;
+        case '2':
+          rl.question('Please enter your user ID: ', async (inputUserId) => {
+            userId = inputUserId;
+            await setLocalStorage({ userId });
+            await startCountdownAndPoints();
+            await connectWebSocket(userId);
+            rl.close();
+          });
+          break;
+        default:
+          console.log('Invalid option. Exiting...');
+          process.exit(0);
+      }
+    });
+  } else {
+    rl.question('Menu:\n1. Logout\n2. Start Running Node\nChoose an option: ', async (option) => {
+      switch (option) {
+        case '1':
+          fs.unlink('localStorage.json', (err) => {
+            if (err) throw err;
+          });
+          console.log('Logged out successfully.');
+          process.exit(0);
+          break;
+        case '2':
+          await startCountdownAndPoints();
+          await connectWebSocket(userId);
+          break;
+        default:
+          console.log('Invalid option. Exiting...');
+          process.exit(0);
+      }
+    });
+  }
+}
+
+main();
