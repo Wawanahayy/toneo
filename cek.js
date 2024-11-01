@@ -2,12 +2,15 @@ const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
+const axios = require('axios');
+const { exec } = require('child_process'); // Import exec
 
 let socket = null;
 let pingInterval;
 let countdownInterval;
 let logInterval;
 let potentialPoints = 0;
+let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
 
@@ -19,14 +22,22 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-// Fungsi untuk menampilkan teks berwarna
-function display_colored_text() {
-  console.log("\x1b[40;96m============================================================");
-  console.log("\x1b[42;37m=======================  J.W.P.A  ==========================");
-  console.log("\x1b[45;97m================= @AirdropJP_JawaPride =====================");
-  console.log("\x1b[43;30m=============== https://x.com/JAWAPRIDE_ID =================");
-  console.log("\x1b[41;97m============= https://linktr.ee/Jawa_Pride_ID ==============");
-  console.log("\x1b[44;30m============================================================\x1b[0m");
+// Menampilkan konten display.sh menggunakan curl
+function displayContent() {
+  return new Promise((resolve, reject) => {
+    exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing display script: ${error.message}`);
+        return reject(error);
+      }
+      if (stderr) {
+        console.error(`Error output: ${stderr}`);
+        return reject(stderr);
+      }
+      console.log(stdout);
+      resolve();
+    });
+  });
 }
 
 // Mengambil dan menyimpan data lokal
@@ -54,6 +65,7 @@ async function connectWebSocket(userId) {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = async () => {
+    console.log("WebSocket connected");
     startPinging();
     startCountdownAndPoints();
     startLogUpdates();
@@ -69,13 +81,14 @@ async function connectWebSocket(userId) {
       pointsTotal = data.pointsTotal;
       pointsToday = data.pointsToday;
     }
-    updateBlinkingColorMessage();
+    updateBlinkingColorMessage(); // Update message on receiving new data
   };
 
   socket.onclose = () => {
+    console.log("WebSocket disconnected");
     stopPinging();
     stopLogUpdates();
-    reconnectWebSocket(userId);
+    reconnectWebSocket(userId); // Attempt to reconnect
   };
 
   socket.onerror = (error) => {
@@ -84,7 +97,8 @@ async function connectWebSocket(userId) {
 }
 
 function reconnectWebSocket(userId) {
-  setTimeout(() => connectWebSocket(userId), 5000);
+  console.log("Attempting to reconnect...");
+  setTimeout(() => connectWebSocket(userId), 5000); // Reconnect after 5 seconds
 }
 
 function disconnectWebSocket() {
@@ -136,8 +150,8 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-let currentColorIndex = 0;
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m'];
+let currentColorIndex = 0; // Menyimpan indeks warna saat ini
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m']; // Warna yang akan digunakan
 
 function updateBlinkingColorMessage() {
   console.clear(); 
@@ -149,20 +163,52 @@ function updateBlinkingColorMessage() {
   console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
+  console.log(`TIME RUN: ${elapsedTime()}`); // Menampilkan elapsed time
   console.log(`---------------------`);
 
-  currentColorIndex = (currentColorIndex + 1) % colors.length; 
+  currentColorIndex = (currentColorIndex + 1) % colors.length; // Mengatur indeks warna untuk warna berikutnya
 }
 
-let startTime; 
+let startTime; // Menyimpan waktu saat WebSocket terhubung
 function startCountdownAndPoints() {
   clearInterval(countdownInterval);
-  startTime = new Date(); 
+  startTime = new Date(); // Simpan waktu saat WebSocket terhubung
   updateCountdownAndPoints();
   countdownInterval = setInterval(() => {
     updateCountdownAndPoints();
-    updateBlinkingColorMessage(); 
+    updateBlinkingColorMessage(); // Memperbarui pesan berkedip setiap detik
   }, 1000);
+}
+
+function elapsedTime() {
+  if (!startTime) return "00:00"; // Jika tidak ada waktu mulai
+  const now = new Date();
+  const diff = Math.floor((now - startTime) / 1000); // Dalam detik
+  const minutes = String(Math.floor(diff / 60)).padStart(2, '0');
+  const seconds = String(diff % 60).padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+async function updateCountdownAndPoints() {
+  const { lastUpdated } = await getLocalStorage();
+  // Logika perhitungan poin dan waktu...
+}
+
+async function getUserId() {
+  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+  rl.question('Email: ', (email) => {
+    rl.question('Password: ', async (password) => {
+      try {
+        const response = await axios.post(loginUrl, { email, password });
+        const userId = response.data.user.id;
+        await setLocalStorage({ userId });
+        await connectWebSocket(userId);
+        rl.close();
+      } catch (error) {
+        console.error("Error during login:", error.message);
+      }
+    });
+  });
 }
 
 function formatDate(date) {
@@ -171,8 +217,7 @@ function formatDate(date) {
 
 // Mulai aplikasi
 (async () => {
-  display_colored_text(); // Tampilkan teks berwarna
-  await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik
+  await displayContent(); // Menampilkan konten sebelum meminta email
   const localStorageData = await getLocalStorage();
   if (localStorageData.userId) {
     await connectWebSocket(localStorageData.userId);
