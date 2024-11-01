@@ -1,9 +1,9 @@
 const WebSocket = require('ws');
+const HttpsProxyAgent = require('https-proxy-agent'); // Import HttpsProxyAgent
 const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
-const HttpsProxyAgent = require('https-proxy-agent'); // Pastikan Anda sudah menginstal package ini
 
 let sockets = []; // Array untuk menyimpan koneksi WebSocket
 let pingIntervals = [];
@@ -14,7 +14,6 @@ let startTime; // Untuk menyimpan waktu mulai
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
-
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -36,14 +35,24 @@ async function setLocalStorage(data) {
   await writeFileAsync('localStorage.json', JSON.stringify(newData));
 }
 
+// Fungsi untuk membaca proxy dari file proxies.json
+async function getProxies() {
+  try {
+    const data = await readFileAsync('proxies.json', 'utf8');
+    const json = JSON.parse(data);
+    return json.proxies;
+  } catch (error) {
+    console.error('Error reading proxies:', error);
+    return [];
+  }
+}
+
 async function connectWebSocket(userId, proxy) {
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
-  const socket = new WebSocket(wsUrl, { 
-    agent: proxy ? new HttpsProxyAgent(`http://${proxy.ip}:${proxy.port}`) : undefined 
-  });
+  const socket = new WebSocket(wsUrl, { agent: proxy ? new HttpsProxyAgent(proxy) : undefined });
 
   startTime = new Date(); // Menyimpan waktu mulai saat koneksi WebSocket
 
@@ -212,34 +221,20 @@ async function getUserId() {
 
 function formatDate(date) {
   const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-  return date.toLocaleString('en-GB', options);
+  return new Intl.DateTimeFormat('en-US', options).format(date);
 }
 
-// Fungsi utama
+// Main function
 (async () => {
-  const localStorageData = await getLocalStorage();
   const userId = await getUserId();
-
   if (!userId) {
     console.error("Failed to get user ID. Exiting...");
     return;
   }
 
-  rl.question('Use Proxy? (yes/no): ', async (answer) => {
-    let proxy = null;
-    if (answer.toLowerCase() === 'yes') {
-      rl.question('Enter Proxy IP: ', (ip) => {
-        rl.question('Enter Proxy Port: ', (port) => {
-          proxy = { ip, port };
-          const socket = connectWebSocket(userId, proxy);
-          sockets.push(socket);
-          rl.close();
-        });
-      });
-    } else {
-      const socket = connectWebSocket(userId);
-      sockets.push(socket);
-      rl.close();
-    }
-  });
+  const proxies = await getProxies(); // Ambil semua proxy dari file
+  const selectedProxy = proxies[Math.floor(Math.random() * proxies.length)]; // Pilih satu proxy secara acak
+
+  const socket = await connectWebSocket(userId, selectedProxy); // Menghubungkan dengan proxy yang dipilih
+  sockets.push(socket); // Menyimpan socket ke dalam array
 })();
