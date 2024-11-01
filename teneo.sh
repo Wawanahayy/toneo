@@ -24,4 +24,4 @@ npm install ws
 npm install axios
 
 # Run run.js
-node 2.js
+node run.js
