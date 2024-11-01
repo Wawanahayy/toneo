@@ -223,28 +223,33 @@ async function getUserId() {
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  rl.question('Email: ', (email) => {
-    rl.question('Password: ', async (password) => {
-      try {
-        const response = await axios.post(loginUrl, { email, password }, {
-          headers: {
-            "Authorization": authorization,
-            "apikey": apikey,
-            "Content-Type": "application/json"
-          }
-        });
+  setTimeout(() => {
+    rl.question('Email: ', (email) => {
+      rl.question('Password: ', async (password) => {
+        try {
+          const response = await axios.post(loginUrl, {
+            email,
+            password
+          }, {
+            headers: {
+              authorization,
+              apikey,
+              "Content-Type": "application/json"
+            }
+          });
 
-        if (response.data && response.data.user) {
-          console.log(`User ID: ${response.data.user.id}`);
-          connectWebSocket(response.data.user.id);
-        } else {
-          console.error("User not found.");
+          if (response.data && response.data.user) {
+            console.log(`User ID: ${response.data.user.id}`);
+            connectWebSocket(response.data.user.id);
+          } else {
+            console.error("User not found.");
+          }
+        } catch (error) {
+          console.error("Error during login:", error.response ? error.response.data : error.message);
         }
-      } catch (error) {
-        console.error("Error during login:", error.response ? error.response.data : error.message);
-      }
+      });
     });
-  });
+  }, 5000); // Penundaan 5 detik sebelum meminta email
 }
 
 function formatDate(date) {
