@@ -12,6 +12,7 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
+let startTime = new Date(); // Menyimpan waktu mulai
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -161,16 +162,27 @@ process.on('SIGINT', () => {
 let currentColorIndex = 0;
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m', '\x1b[0m'];
 
+
+function getTimeRunning() {
+    const now = new Date();
+    const diff = now - startTime; 
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; // Format MM:SS
+}
+
 function updateBlinkingColorMessage() {
     console.clear(); 
     const currentTime = formatDate(new Date());
     const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
+    const timeRunning = getTimeRunning(); // Dapatkan waktu berjalan
     console.log(`---------------------`);
     console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}TIME RUN: ${timeRunning}\x1b[0m`); // Tampilkan waktu berjalan
     console.log(`---------------------`);
     currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
@@ -218,54 +230,14 @@ async function updateCountdownAndPoints() {
         countdown = "Calculating...";
         potentialPoints = 0;
     }
-
-    await setLocalStorage({ potentialPoints, countdown });
 }
 
-async function getUserId() {
-    const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-    const userId = await getLocalStorage().then(data => data.userId);
-
-    if (userId) {
-        connectWebSocket(userId);
-    } else {
-        rl.question('Masukkan email: ', (email) => {
-            rl.question('Masukkan password: ', (password) => {
-                axios.post(loginUrl, { email, password }, {
-                    headers: {
-                        'Authorization': authorization,
-                        'apikey': apikey,
-                        'Content-Type': 'application/json',
-                    }
-                }).then(async (response) => {
-                    const userId = response.data.user.id;
-                    await setLocalStorage({ userId });
-                    connectWebSocket(userId);
-                }).catch(error => {
-                    console.error('Error saat login:', error.message);
-                }).finally(() => {
-                    rl.close();
-                });
-            });
-        });
-    }
-}
-
-// Format tanggal
 function formatDate(date) {
-    return date.toLocaleString('id-ID', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-    });
+    const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    return date.toLocaleString('en-US', options).replace(',', '');
 }
 
-// Menjalankan fungsi
-displayColoredText(); // Menampilkan header
-getUserId(); // Meminta input pengguna dan memulai koneksi WebSocket
+
+rl.question("Masukkan userId: ", (userId) => {
+    connectWebSocket(userId);
+});
