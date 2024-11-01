@@ -12,6 +12,7 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
+let colorBlinkInterval; // Interval untuk kedip warna
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -57,6 +58,7 @@ async function connectWebSocket(userId) {
     startPinging();
     startCountdownAndPoints();
     startLogUpdates(); // Mulai mencetak log setiap 5 menit
+    startColorBlink(); // Mulai warna berkedip
   };
 
   socket.onmessage = async (event) => {
@@ -90,6 +92,7 @@ async function connectWebSocket(userId) {
     console.log("WebSocket disconnected");
     stopPinging();
     stopLogUpdates(); // Hentikan pencetakan log saat WebSocket terputus
+    stopColorBlink(); // Hentikan kedip warna saat WebSocket terputus
   };
 
   socket.onerror = (error) => {
@@ -103,6 +106,7 @@ function disconnectWebSocket() {
     socket = null;
     stopPinging();
     stopLogUpdates(); // Hentikan pencetakan log saat terputus
+    stopColorBlink(); // Hentikan kedip warna saat terputus
   }
 }
 
@@ -138,10 +142,30 @@ function stopLogUpdates() {
   }
 }
 
+function startColorBlink() {
+  stopColorBlink();
+  let isRed = false; // Flag untuk warna yang digunakan
+  colorBlinkInterval = setInterval(() => {
+    const color = isRed ? "\x1b[31m" : "\x1b[32m"; // Merah dan hijau
+    process.stdout.write(`${color}Blinking Color!\x1b[0m\r`); // Menampilkan teks dengan warna
+    isRed = !isRed; // Ubah warna
+  }, 1000); // Ubah warna setiap 1 detik
+}
+
+function stopColorBlink() {
+  if (colorBlinkInterval) {
+    clearInterval(colorBlinkInterval);
+    colorBlinkInterval = null;
+    process.stdout.write(`\x1b[0m`); // Reset warna
+    console.log(''); // Pindah ke baris baru
+  }
+}
+
 process.on('SIGINT', () => {
   console.log('Received SIGINT. Stopping pinging and log updates...');
   stopPinging();
   stopLogUpdates(); // Hentikan log saat menerima SIGINT
+  stopColorBlink(); // Hentikan kedip warna
   disconnectWebSocket();
   process.exit(0);
 });
@@ -195,71 +219,36 @@ async function getUserId() {
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  rl.question('Email: ', (email) => {
-    rl.question('Password: ', async (password) => {
-      try {
-        const response = await axios.post(loginUrl, {
-          email: email,
-          password: password
-        }, {
-          headers: {
-            'Authorization': authorization,
-            'apikey': apikey
-          }
-        });
+  rl.question('Enter your username: ', async (username) => {
+    rl.question('Enter your password: ', async (password) => {
+      const response = await axios.post(loginUrl, {
+        email: username,
+        password: password
+      }, {
+        headers: {
+          'Authorization': authorization,
+          'apikey': apikey
+        }
+      });
 
-        const userId = response.data.user.id;
-        console.log('User ID:', userId);
-
-        const profileUrl = `https://ikknngrgxuxgjhplbpey.supabase.co/rest/v1/profiles?select=personal_code&id=eq.${userId}`;
-        const profileResponse = await axios.get(profileUrl, {
-          headers: {
-            'Authorization': authorization,
-            'apikey': apikey
-          }
-        });
-
-        console.log('Profile Data:', profileResponse.data);
+      if (response.data) {
+        const userId = response.data.user.id; // Ambil user ID dari response
         await setLocalStorage({ userId });
-        await startCountdownAndPoints();
+        console.log(`User ID: ${userId}`);
         await connectWebSocket(userId);
-      } catch (error) {
-        console.error('Error:', error.response ? error.response.data : error.message);
-      } finally {
-        rl.close();
       }
+      rl.close();
     });
   });
 }
 
+// Fungsi untuk format tanggal
 function formatDate(date) {
-  const options = { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit', 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit', 
-    hour12: false,
-    timeZone: 'Asia/Jakarta',
-    timeZoneName: 'short'
-  };
-  return date.toLocaleString('en-US', options).replace(',', '').replace(/\/(\d{1,2})\//g, '/0$1/').replace(/\/(\d{1,2})$/, '/0$1');
+  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
-async function main() {
+// Menjalankan fungsi utama
+(async () => {
   await displayHeader();
-  const localStorageData = await getLocalStorage();
-  const userId = localStorageData.userId;
-
-  if (!userId) {
-    console.log('User ID not found. Please log in.');
-    await getUserId();
-  } else {
-    console.log('Using stored User ID:', userId);
-    await startCountdownAndPoints();
-    await connectWebSocket(userId);
-  }
-}
-
-main().catch(console.error);
+  await getUserId();
+})();
