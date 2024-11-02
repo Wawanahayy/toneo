@@ -1,156 +1,205 @@
-require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
 const WebSocket = require('ws');
-const { exec } = require('child_process');
-const chalk = require('chalk');
+const { promisify } = require('util');
+const fs = require('fs');
+const axios = require('axios');
+const HttpsProxyAgent = require('https-proxy-agent');
 
-exec("curl -s https://raw.githubusercontent.com/Wawanahayy/JawaPride-all.sh/refs/heads/main/display.sh | bash", (error, stdout, stderr) => {
-  if (error) {
-    console.error(chalk.red(`Kesalahan saat menjalankan display.sh: ${error.message}`));
-    return;
-  }
-  if (stderr) {
-    console.error(chalk.red(`Kesalahan: ${stderr}`));
-    return;
-  }
-  console.log(stdout);
-});
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-let totalPoints = 0;
-let pointsToday = 0;
-
-// Daftar kode warna ANSI
+let accountsData = [];
+let currentColorIndex = 0;
 const colors = [
-  '\x1b[31m', // Merah
-  '\x1b[32m', // Hijau
-  '\x1b[33m', // Kuning
-  '\x1b[34m', // Biru
-  '\x1b[35m', // Magenta
-  '\x1b[36m'  // Cyan
+  '\x1b[31m',
+  '\x1b[32m',
+  '\x1b[33m',
+  '\x1b[34m',
+  '\x1b[35m',
+  '\x1b[36m'
 ];
 
-function getRandomColor() {
-  return colors[Math.floor(Math.random() * colors.length)];
+let startTime;
+let lastPingTime;
+let pingInterval = 5000; 
+
+function formatDate(date) {
+  return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
 }
 
-function kedipKedipPesan(pesan, duration) {
-  let colorIndex = 0;
-  const blinkInterval = setInterval(() => {
-    process.stdout.write(`${getRandomColor()}${pesan}\x1b[0m\r`); // Menggunakan warna acak
-    colorIndex++;
-  }, 200); // Ganti warna setiap 0.2 detik
-
-  setTimeout(() => {
-    clearInterval(blinkInterval);
-    console.log('\x1b[0m'); // Reset warna dan gaya teks setelah 10 detik
-  }, duration);
+function formatElapsedTime(elapsedMilliseconds) {
+  const totalSeconds = Math.floor(elapsedMilliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-async function ambilPoinPengguna(userId) {
+function calculateElapsedTime() {
+  return formatElapsedTime(new Date() - startTime);
+}
+
+async function getConfig() {
   try {
-    const { data, error } = await supabase
-      .from('user_points')
-      .select('total_poin, poin_UPDATE')
-      .eq('id_pengguna', userId)
-      .single();
-
-    if (error) throw error;
-
-    return data || { total_poin: 0, poin_hari_ini: 0 };
+    const data = await promisify(fs.readFile)('config.json', 'utf8');
+    return JSON.parse(data);
   } catch (error) {
-    console.error(chalk.red('Gagal mengambil poin pengguna:'), error.message);
-    return { total_poin: 0, poin_hari_ini: 0 };
+    console.error("Error reading config.json:", error);
+    return {};
   }
 }
 
-function buatKoneksiWebSocket(userId, tokenAkses) {
-  const wsUrl = `wss://secure.ws.teneo.pro/websocket?userId=${encodeURIComponent(userId)}&version=v0.2`;
-  const socket = new WebSocket(wsUrl, {
-    headers: { Authorization: `Bearer ${tokenAkses}` }
-  });
+async function connectWebSocket(userId, email, proxy) {
+  const version = "v0.2";
+  const url = "wss://secure.ws.teneo.pro";
+  const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
+  let agent;
+  if (proxy) {
+    const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
+    agent = new HttpsProxyAgent(proxyUrl);
+  }
+  const socket = new WebSocket(wsUrl, { agent });
 
-  socket.on('open', () => {
-    console.log(chalk.green('WebSocket terhubung'));
-    socket.send(JSON.stringify({ type: "KONEKSI" }));
-  });
-
-  socket.on('message', (data) => {
-    const parsedData = JSON.parse(data.toString());
-    if (parsedData.pointsTotal !== undefined) {
-      totalPoints = parsedData.pointsTotal;
-      pointsToday = parsedData.pointsToday;
+  socket.onopen = async () => {
+    console.log(`WebSocket connected for user: ${email}`);
+    const account = accountsData.find(account => account.email === email);
+    if (account) {
+      account.socket = socket;
+      account.pingStatus = 'Active';
     }
-  });
+    startPing(socket, email); 
+    startBlinkingColorMessage();
+    updateDisplay();
+  };
 
-  socket.on('error', (error) => {
-    console.error(chalk.red('WebSocket error:'), error);
-  });
+  socket.onmessage = async (event) => {
+    const data = JSON.parse(event.data);
 
-  socket.on('close', (code, reason) => {
-    console.log(chalk.red('WebSocket ditutup:'), code, reason);
-    setTimeout(() => {
-      buatKoneksiWebSocket(userId, tokenAkses);
-    }, 10000); // Coba sambung kembali setelah 10 detik
-  });
+    
+    if (data.type === "pong") {
+      const pingTime = Date.now() - lastPingTime;
+      console.log(`Ping untuk user ${email}: ${pingTime} ms`);
+      const account = accountsData.find(account => account.email === email);
+      if (account) {
+        account.pingStatus = 'Active';
+      }
+    }
 
-  return socket;
+    if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
+      const account = accountsData.find(account => account.email === email);
+      if (account) {
+        account.pointsTotal = data.pointsTotal;
+        account.pointsToday = data.pointsToday;
+        updateDisplay();
+      }
+    }
+  };
+
+  socket.onclose = () => {
+    console.log(`WebSocket disconnected for user: ${email}`);
+  };
+
+  socket.onerror = (error) => {
+    console.error(`WebSocket error for user ${email}:`, error);
+  };
 }
 
-async function jalankanProgram() {
+function startPing(socket, email) {
+  setInterval(() => {
+    if (socket.readyState === WebSocket.OPEN) {
+      lastPingTime = Date.now();
+      socket.send(JSON.stringify({ type: "ping" })); 
+      const account = accountsData.find(account => account.email === email);
+      if (account) {
+        account.pingStatus = 'Active'; 
+      }
+    }
+  }, pingInterval);
+}
+
+function updateDisplay() {
+  const currentTime = formatDate(new Date());
+  const elapsedTime = calculateElapsedTime();
+
+  console.clear();
+
+  accountsData.forEach((account, index) => {
+    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+    const proxyStatus = account.proxy ? 'true' : 'false';
+    const pingStatus = account.pingStatus || 'Inactive'; 
+
+    console.log(`---------------------------------`);
+    console.log(`${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`); 
+    console.log(`---------------------------------`);
+  });
+
+  currentColorIndex = (currentColorIndex + 1) % colors.length;
+}
+
+function startBlinkingColorMessage() {
+  setInterval(updateDisplay, 1000);
+}
+
+async function getUserId(email, password) {
+  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+
+  console.log(`Attempting to log in with email: ${email}`);
+
   try {
-    console.log(chalk.blue('Menggunakan token akses untuk autentikasi...'));
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: process.env.SUPABASE_USER_EMAIL,
-      password: process.env.SUPABASE_USER_PASSWORD,
+    const response = await axios.post(loginUrl, {
+      email,
+      password
+    }, {
+      headers: {
+        authorization,
+        apikey,
+        "Content-Type": "application/json"
+      }
     });
 
-    if (error) throw error;
-
-    const session = data.session;
-    console.log(chalk.green('Autentikasi berhasil'));
-    console.log(chalk.green('Token Akses berhasil'));
-
-    supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token
-    });
-
-    const poinPengguna = await ambilPoinPengguna(data.user.id);
-    totalPoints = poinPengguna.total_poin;
-    const socket = buatKoneksiWebSocket(data.user.id, session.access_token);
-
-    // Print pembaruan poin berkedip setiap 10 detik
-    setInterval(() => {
-      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-      const pesan = `POINT UPDATE | TOTAL POINT DAILY: ${pointsToday} | TOTAL POINT: ${totalPoints} | JAM: ${timestamp}`;
-      kedipKedipPesan(pesan, 10000); // Berkedip selama 10 detik
-    }, 10000); // 10000 ms = 10 detik
-
-    // Cek status WebSocket setiap 5 menit
-    setInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        console.log(chalk.green('WebSocket masih terhubung.'));
-      } else {
-        console.log(chalk.red('WebSocket tidak terhubung'));
-      }
-    }, 300000); // 300000 ms = 5 menit
-
-    setInterval(async () => {
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.error(chalk.red('Error memperbarui sesi:'), refreshError);
-      } else {
-        console.log(chalk.green('Sesi diperbarui. Token akses berhasil'));
-        supabase.auth.setSession(refreshData.session);
-      }
-    }, 950000);
-
+    if (response.data && response.data.user) {
+      console.log(`User ID: ${response.data.user.id}`);
+      return response.data.user.id;
+    } else {
+      console.error("User not found.");
+      return null;
+    }
   } catch (error) {
-    console.error(chalk.red('Kesalahan:'), error.message);
+    console.error("Error during login:", error.response ? error.response.data : error.message);
+    return null;
   }
 }
 
-jalankanProgram();
+async function main() {
+  const config = await getConfig();
+  const accounts = config.accounts;
+
+  startTime = new Date();
+
+  for (const account of accounts) {
+    if (account.email && account.password) {
+      const userId = await getUserId(account.email, account.password);
+      if (userId) {
+        accountsData.push({
+          email: account.email,
+          pointsTotal: 0,
+          pointsToday: 0,
+          proxy: account.proxy ? true : false,
+          pingStatus: 'Inactive'
+        });
+        await connectWebSocket(userId, account.email, account.proxy);
+      } else {
+        console.error(`Failed to retrieve user ID for ${account.email}.`);
+      }
+    } else {
+      console.error("Email and password must be provided for each account.");
+    }
+  }
+}
+
+main().catch(console.error);

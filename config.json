@@ -1,3 +1,14 @@
 {
-  "userId": "yourUserId"
+  "accounts": [
+    {
+      "email": "your@gmail.com",
+      "password": "", 
+      "proxy": null 
+    },
+    {
+      "email": "your@gmail.com",
+      "password": "", 
+      "proxy": null
+    }
+  ]
 }
