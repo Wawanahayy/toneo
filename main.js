@@ -28,9 +28,11 @@ async function getLocalStorage() {
     const data = await readFileAsync('localStorage.json', 'utf8');
     return JSON.parse(data);
   } catch (error) {
+    console.error("Error reading localStorage.json:", error);
     return {};
   }
 }
+
 
 async function setLocalStorage(data) {
   const currentData = await getLocalStorage();
