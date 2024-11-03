@@ -144,36 +144,42 @@ function startBlinkingColorMessage() {
   setInterval(updateDisplay, 1000);
 }
 
-async function getUserId(proxy) {
+async function getUserId(email, password, proxy) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-
-  console.log(`Attempting to log in with email: ${email}`);
-  console.log(`Logging in with email: ${email}, password: ${password}`);
-
-  try {
-    const response = await axios.post(loginUrl, {
-      email,
-      password
-    }, {
-      headers: {
-        authorization,
-        apikey,
-        "Content-Type": "application/json"
+  const maxRetries = 3;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      console.log(`Attempting to log in with email: ${email}`);
+      const response = await axios.post(loginUrl, {
+        email,
+        password
+      }, {
+        headers: {
+          authorization,
+          apikey,
+          "Content-Type": "application/json"
+        }
+      });
+  
+      if (response.data && response.data.user) {
+        console.log(`User ID: ${response.data.user.id}`);
+        return response.data.user.id;
+      } else {
+        console.error("User not found.");
+        return null;
       }
-    });
-
-    if (response.data && response.data.user) {
-      console.log(`User ID: ${response.data.user.id}`);
-      return response.data.user.id;
-    } else {
-      console.error("User not found.");
-      return null;
+    } catch (error) {
+      console.error("Error during login:", error.response ? error.response.data : error.message);
+      if (attempt === maxRetries - 1) {
+        console.error(`Failed to log in after ${maxRetries} attempts.`);
+        return null;
+      }
+      console.log(`Retrying login... (${attempt + 1}/${maxRetries})`);
     }
-  } catch (error) {
-    console.error("Error during login:", error.response ? error.response.data : error.message);
-    return null;
   }
 }
+
 
 async function main() {
   const config = await getConfig();
