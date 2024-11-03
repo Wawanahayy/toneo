@@ -50,9 +50,11 @@ async function connectWebSocket(userId, email, proxy) {
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   let agent;
   if (proxy) {
+if (proxy) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
-    agent = new HttpsProxyAgent(proxyUrl);
-  }
+    agent = new HttpsProxyAgent(proxyUrl); // Ubah jika perlu
+}
+
   const socket = new WebSocket(wsUrl, { agent });
 
   socket.onopen = async () => {
