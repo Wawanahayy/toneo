@@ -33,7 +33,6 @@ async function getLocalStorage() {
   }
 }
 
-
 async function setLocalStorage(data) {
   const currentData = await getLocalStorage();
   const newData = { ...currentData, ...data };
@@ -71,9 +70,9 @@ async function connectWebSocket(userId, proxy) {
     }
   };
 
-  socket.onclose = () => {
+  socket.onclose = (event) => {
+    console.log("WebSocket disconnected", event.code, event.reason);
     socket = null;
-    console.log("WebSocket disconnected");
     stopPinging();
   };
 
@@ -110,9 +109,10 @@ function formatDate(date) {
   return date.toISOString().replace('T', ' ').substring(0, 19);
 }
 
+let startTime = null; // Menyimpan waktu mulai
+
 function calculateElapsedTime() {
-  // Implementasi penghitungan waktu yang sudah berlalu
-  const startTime = new Date(); // Anda bisa menyimpan waktu mulai saat penghubungan
+  if (!startTime) return '0m 0s';
   const elapsed = new Date() - startTime;
   const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
@@ -152,11 +152,19 @@ function startBlinkingColorMessage() {
 
 async function getUserId(proxy) {
   // Implementasi login dan pengambilan userId
+  console.log("Implementasi login untuk mendapatkan userId akan ditempatkan di sini.");
+  // Misalnya: 
+  // const response = await axios.post("URL_LOGIN", { /* data login */ });
+  // const userId = response.data.userId;
+  // await setLocalStorage({ userId });
+  // return userId;
 }
 
 async function main() {
   const localStorageData = await getLocalStorage();
   let userId = localStorageData.userId;
+
+  console.log('Current userId:', userId); // Tambahkan log ini
 
   rl.question('Do you have proxy? (y/n): ', async (useProxy) => {
     let proxy = null;
@@ -170,6 +178,7 @@ async function main() {
 
     if (!userId) {
       rl.question('Menu:\n1. Login\nChoose an option: ', async (option) => {
+        console.log('User chose to login'); // Tambahkan log ini
         switch (option) {
           case '1':
             await getUserId(proxy);
@@ -190,6 +199,7 @@ async function main() {
             });
             break;
           case '2':
+            startTime = new Date(); // Simpan waktu mulai saat node dijalankan
             await startBlinkingColorMessage();
             await connectWebSocket(userId, proxy);
             break;
