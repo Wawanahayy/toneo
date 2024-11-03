@@ -1,211 +1,199 @@
 const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
+const readline = require('readline');
 const axios = require('axios');
-const HttpsProxyAgent = require('https-proxy-agent');
 
-let accountsData = [];
-let currentColorIndex = 0;
-const colors = [
-  '\x1b[31m',
-  '\x1b[32m',
-  '\x1b[33m',
-  '\x1b[34m',
-  '\x1b[35m',
-  '\x1b[36m'
-];
-
+let sockets = {}; // Objek untuk menyimpan soket per akun
+let pingIntervals = {};
+let logIntervals = {};
+let potentialPoints = 0;
+let countdown = "Calculating...";
+let pointsTotal = 0;
+let pointsToday = 0;
 let startTime;
-let lastPingTime;
-const pingInterval = 5000; 
 
-function formatDate(date) {
-  return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
-}
+const readFileAsync = promisify(fs.readFile);
+const writeFileAsync = promisify(fs.writeFile);
 
-function formatElapsedTime(elapsedMilliseconds) {
-  const totalSeconds = Math.floor(elapsedMilliseconds / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-function calculateElapsedTime() {
-  return formatElapsedTime(new Date() - startTime);
-}
-
-async function getConfig() {
+// Fungsi untuk mendapatkan localStorage
+async function getLocalStorage() {
   try {
-    const data = await promisify(fs.readFile)('config.json', 'utf8');
+    const data = await readFileAsync('localStorage.json', 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    console.error("Error reading config.json:", error);
     return {};
   }
 }
 
-async function connectWebSocket(userId, email, proxy) {
+// Fungsi untuk mengatur localStorage
+async function setLocalStorage(data) {
+  const currentData = await getLocalStorage();
+  const newData = { ...currentData, ...data };
+  await writeFileAsync('localStorage.json', JSON.stringify(newData));
+}
+
+// Fungsi untuk menghubungkan ke WebSocket
+async function connectWebSocket(userId, proxy) {
+  if (sockets[userId]) return; // Jika soket sudah ada untuk akun ini
+
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
-  let agent;
-
-  if (proxy) {
-    const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
-    agent = new HttpsProxyAgent(proxyUrl);
-  }
-
-  const socket = new WebSocket(wsUrl, { agent });
-
-  socket.onopen = async () => {
-    console.log(`WebSocket connected for user: ${email}`);
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.socket = socket;
-      account.pingStatus = 'Active';
-    }
-    startPing(socket, email); 
-    startBlinkingColorMessage();
-    updateDisplay();
-  };
-
-  socket.onmessage = async (event) => {
-    const data = JSON.parse(event.data);
-    handleWebSocketMessage(data, email);
-  };
-
-  socket.onclose = async () => {
-    console.log(`WebSocket disconnected for user: ${email}. Attempting to reconnect...`);
-    setTimeout(() => connectWebSocket(userId, email, proxy), 5000);
-  };
-
-  socket.onerror = (error) => {
-    console.error(`WebSocket error for user ${email}:`, error);
-    socket.close(); // Close the socket on error
-  };
-}
-
-function handleWebSocketMessage(data, email) {
-  if (data.type === "pong") {
-    const pingTime = Date.now() - lastPingTime;
-    console.log(`Ping untuk user ${email}: ${pingTime} ms`);
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.pingStatus = 'Active';
-    }
-  }
-
-  if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.pointsTotal = data.pointsTotal;
-      account.pointsToday = data.pointsToday;
-      updateDisplay();
-    }
-  }
-}
-
-function startPing(socket, email) {
-  setInterval(() => {
-    if (socket.readyState === WebSocket.OPEN) {
-      lastPingTime = Date.now();
-      socket.send(JSON.stringify({ type: "ping" })); 
-      const account = accountsData.find(account => account.email === email);
-      if (account) {
-        account.pingStatus = 'Active'; 
-      }
-    }
-  }, pingInterval);
-}
-
-function updateDisplay() {
-  const currentTime = formatDate(new Date());
-  const elapsedTime = calculateElapsedTime();
-
-  console.clear();
-
-  accountsData.forEach((account, index) => {
-    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
-    const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive'; 
-
-    console.log(`---------------------------------`);
-    console.log(`${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`); 
-    console.log(`---------------------------------`);
+  
+  // Jika proxy disediakan, gunakan
+  const socket = new WebSocket(wsUrl, {
+    agent: proxy ? new HttpsProxyAgent(proxy) : undefined // Menggunakan agent jika proxy ada
   });
-
-  currentColorIndex = (currentColorIndex + 1) % colors.length;
-}
-
-function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 1000);
-}
-
-async function getUserId(email, password) {
-  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-
-  console.log(`Attempting to log in with email: ${email}`);
-
-  try {
-    const response = await axios.post(loginUrl, {
-      email,
-      password
-    }, {
-      headers: {
-        authorization,
-        apikey,
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (response.data && response.data.user) {
-      console.log(`User ID: ${response.data.user.id}`);
-      return response.data.user.id;
-    } else {
-      console.error("User not found. Response data:", response.data);
-      return null;
-    }
-  } catch (error) {
-    console.error("Error during login:", error.response ? error.response.data : error.message);
-    return null;
-  }
-}
-
-async function main() {
-  const config = await getConfig();
-  const accounts = config.accounts;
 
   startTime = new Date();
 
-  for (const account of accounts) {
-    if (account.email && account.password) {
-      const userId = await getUserId(account.email, account.password);
-      if (userId) {
-        accountsData.push({
-          email: account.email,
-          pointsTotal: 0,
-          pointsToday: 0,
-          proxy: account.proxy ? true : false,
-          pingStatus: 'Inactive'
+  socket.onopen = async () => {
+    const connectionTime = new Date();
+    await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
+    console.log(`WebSocket connected for user ${userId} at`, formatDate(connectionTime));
+    startPinging(userId);
+    startLogUpdates(userId);
+  };
+
+  socket.onmessage = async (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      data.DATE = formatDate(new Date(data.date));
+      console.log(`Received message for user ${userId}:`, data);
+
+      if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
+        await setLocalStorage({
+          lastUpdated: new Date().toISOString(),
+          pointsTotal: data.pointsTotal,
+          pointsToday: data.pointsToday,
         });
-        await connectWebSocket(userId, account.email, account.proxy);
-      } else {
-        console.error(`Failed to retrieve user ID for ${account.email}.`);
+        pointsTotal = data.pointsTotal;
+        pointsToday = data.pointsToday;
       }
-    } else {
-      console.error("Email and password must be provided for each account.");
+    } catch (error) {
+      console.error(`Error parsing WebSocket message for user ${userId}:`, error);
     }
+  };
+
+  socket.onclose = () => {
+    console.log(`WebSocket disconnected for user ${userId}`);
+    delete sockets[userId];
+    stopPinging(userId);
+    stopLogUpdates(userId);
+  };
+
+  socket.onerror = (error) => {
+    console.error(`WebSocket error for user ${userId}:`, error);
+  };
+
+  sockets[userId] = socket; // Menyimpan soket untuk pengguna
+}
+
+function disconnectWebSocket(userId) {
+  if (sockets[userId]) {
+    sockets[userId].close();
+    delete sockets[userId];
+    stopPinging(userId);
+    stopLogUpdates(userId);
   }
 }
 
-main().catch(console.error);
+// Fungsi untuk memulai pinging
+function startPinging(userId) {
+  stopPinging(userId);
+  pingIntervals[userId] = setInterval(async () => {
+    if (sockets[userId] && sockets[userId].readyState === WebSocket.OPEN) {
+      sockets[userId].send(JSON.stringify({ type: "PING" }));
+      await setLocalStorage({ lastPingDate: new Date().toISOString() });
+    }
+  }, 10000);
+}
+
+// Fungsi untuk menghentikan pinging
+function stopPinging(userId) {
+  if (pingIntervals[userId]) {
+    clearInterval(pingIntervals[userId]);
+    delete pingIntervals[userId];
+  }
+}
+
+// Fungsi untuk memulai pembaruan log
+function startLogUpdates(userId) {
+  stopLogUpdates(userId);
+  logIntervals[userId] = setInterval(async () => {
+    const localStorageData = await getLocalStorage();
+    console.log(`Log Update for user ${userId}: 
+      - Points Today: ${localStorageData.pointsToday || 0} 
+      - Points Total: ${localStorageData.pointsTotal || 0} 
+      - Potential Points: ${potentialPoints}`);
+  }, 300000);
+}
+
+// Fungsi untuk menghentikan pembaruan log
+function stopLogUpdates(userId) {
+  if (logIntervals[userId]) {
+    clearInterval(logIntervals[userId]);
+    delete logIntervals[userId];
+  }
+}
+
+// Fungsi untuk mendapatkan User ID
+async function getUserId() {
+  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+
+  rl.question("Enter your email: ", async (email) => {
+    rl.question("Enter your password: ", async (password) => {
+      rl.question("Enter your proxy (or leave empty for no proxy): ", async (proxy) => {
+        try {
+          const response = await axios.post(loginUrl, {
+            email,
+            password
+          }, {
+            headers: {
+              'Authorization': authorization,
+              'apikey': apikey
+            }
+          });
+
+          const { user } = response.data;
+          if (user && user.id) {
+            console.log("Login successful! User ID:", user.id);
+            await setLocalStorage({ userId: user.id });
+            await connectWebSocket(user.id, proxy);
+          } else {
+            console.log("Login failed! Please check your credentials.");
+          }
+        } catch (error) {
+          console.error("Error during login:", error);
+        }
+      });
+    });
+  });
+}
+
+// Fungsi untuk format tanggal
+function formatDate(date) {
+  const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false };
+  return new Intl.DateTimeFormat('en-US', options).format(date);
+}
+
+// Fungsi utama untuk menjalankan skrip
+(async () => {
+  const localStorageData = await getLocalStorage();
+  const { userId } = localStorageData;
+
+  if (userId) {
+    const proxy = localStorageData.proxy || null; // Mengambil proxy dari localStorage jika ada
+    await connectWebSocket(userId, proxy);
+  } else {
+    await getUserId();
+  }
+})();
