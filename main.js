@@ -50,11 +50,9 @@ async function connectWebSocket(userId, email, proxy) {
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   let agent;
   if (proxy) {
-if (proxy) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
-    agent = new HttpsProxyAgent(proxyUrl); // Ubah jika perlu
-}
-
+    agent = new HttpsProxyAgent(proxyUrl);
+  }
   const socket = new WebSocket(wsUrl, { agent });
 
   socket.onopen = async () => {
@@ -72,7 +70,6 @@ if (proxy) {
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
 
-    
     if (data.type === "pong") {
       const pingTime = Date.now() - lastPingTime;
       console.log(`Ping untuk user ${email}: ${pingTime} ms`);
@@ -148,7 +145,7 @@ function startBlinkingColorMessage() {
 async function getUserId(email, password) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   console.log(`Attempting to log in with email: ${email}`);
 
@@ -204,4 +201,5 @@ async function main() {
   }
 }
 
+// Pastikan untuk menutup fungsi main
 main().catch(console.error);
