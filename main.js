@@ -17,7 +17,7 @@ const colors = [
 
 let startTime;
 let lastPingTime;
-let pingInterval = 5000; 
+const pingInterval = 5000; 
 
 function formatDate(date) {
   return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -49,10 +49,12 @@ async function connectWebSocket(userId, email, proxy) {
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   let agent;
+
   if (proxy) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
     agent = new HttpsProxyAgent(proxyUrl);
   }
+
   const socket = new WebSocket(wsUrl, { agent });
 
   socket.onopen = async () => {
@@ -69,34 +71,38 @@ async function connectWebSocket(userId, email, proxy) {
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-
-    
-    if (data.type === "pong") {
-      const pingTime = Date.now() - lastPingTime;
-      console.log(`Ping untuk user ${email}: ${pingTime} ms`);
-      const account = accountsData.find(account => account.email === email);
-      if (account) {
-        account.pingStatus = 'Active';
-      }
-    }
-
-    if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-      const account = accountsData.find(account => account.email === email);
-      if (account) {
-        account.pointsTotal = data.pointsTotal;
-        account.pointsToday = data.pointsToday;
-        updateDisplay();
-      }
-    }
+    handleWebSocketMessage(data, email);
   };
 
-  socket.onclose = () => {
-    console.log(`WebSocket disconnected for user: ${email}`);
+  socket.onclose = async () => {
+    console.log(`WebSocket disconnected for user: ${email}. Attempting to reconnect...`);
+    setTimeout(() => connectWebSocket(userId, email, proxy), 5000);
   };
 
   socket.onerror = (error) => {
     console.error(`WebSocket error for user ${email}:`, error);
+    socket.close(); // Close the socket on error
   };
+}
+
+function handleWebSocketMessage(data, email) {
+  if (data.type === "pong") {
+    const pingTime = Date.now() - lastPingTime;
+    console.log(`Ping untuk user ${email}: ${pingTime} ms`);
+    const account = accountsData.find(account => account.email === email);
+    if (account) {
+      account.pingStatus = 'Active';
+    }
+  }
+
+  if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
+    const account = accountsData.find(account => account.email === email);
+    if (account) {
+      account.pointsTotal = data.pointsTotal;
+      account.pointsToday = data.pointsToday;
+      updateDisplay();
+    }
+  }
 }
 
 function startPing(socket, email) {
@@ -146,7 +152,7 @@ function startBlinkingColorMessage() {
 async function getUserId(email, password) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   console.log(`Attempting to log in with email: ${email}`);
 
