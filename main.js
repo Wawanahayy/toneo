@@ -172,7 +172,7 @@ async function getUserId(email, password) {
       console.log(`User ID: ${response.data.user.id}`);
       return response.data.user.id;
     } else {
-      console.error("User not found.");
+      console.error("User not found. Response data:", response.data);
       return null;
     }
   } catch (error) {
