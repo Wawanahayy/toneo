@@ -148,6 +148,7 @@ async function getUserId(email, password) {
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   console.log(`Attempting to log in with email: ${email}`);
+  console.log(`Logging in with email: ${email}, password: ${password}`);
 
   try {
     const response = await axios.post(loginUrl, {
