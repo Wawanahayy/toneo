@@ -138,38 +138,44 @@ function disconnectWebSocket() {
 // ... (bagian kode lainnya tidak berubah)
 
 async function main() {
-  rl.question('Do you want to add an account? (yes/no): ', async (answer) => {
-    if (answer.toLowerCase() === 'yes') {
-      rl.question('Email: ', (email) => {
-        rl.question('Password: ', async (password) => {
-          await addAccount(email, password);
-          console.log('Account added!');
-          rl.close();
-          const accounts = await getAccounts();
-          console.log('Current accounts:', accounts);
-        });
-      });
-    } else {
-      rl.question('Do you want to add a proxy? (yes/no): ', async (answer) => {
-        if (answer.toLowerCase() === 'yes') {
-          rl.question('Proxy: ', async (proxy) => {
-            await addProxy(proxy);
-            console.log('Proxy added!');
+  try {
+    rl.question('Do you want to add an account? (yes/no): ', async (answer) => {
+      if (answer.toLowerCase() === 'yes') {
+        rl.question('Email: ', (email) => {
+          rl.question('Password: ', async (password) => {
+            await addAccount(email, password);
+            console.log('Account added!');
             rl.close();
-            const proxies = await getProxies();
-            console.log('Current proxies:', proxies);
+            const accounts = await getAccounts();
+            console.log('Current accounts:', accounts);
           });
-        } else {
-          const userId = await getUserId();
-          if (userId) {
-            await connectWebSocket(userId);
+        });
+      } else {
+        rl.question('Do you want to add a proxy? (yes/no): ', async (answer) => {
+          if (answer.toLowerCase() === 'yes') {
+            rl.question('Proxy: ', async (proxy) => {
+              await addProxy(proxy);
+              console.log('Proxy added!');
+              rl.close();
+              const proxies = await getProxies();
+              console.log('Current proxies:', proxies);
+            });
           } else {
-            console.error("Failed to retrieve user ID.");
+            const userId = await getUserId();
+            if (userId) {
+              await connectWebSocket(userId);
+            } else {
+              console.error("Failed to retrieve user ID.");
+              rl.close();
+            }
           }
-        }
-      });
-    }
-  });
+        });
+      }
+    });
+  } catch (error) {
+    console.error("An error occurred:", error);
+  }
 }
+
 
 main().catch(console.error);
