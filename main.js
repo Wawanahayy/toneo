@@ -151,13 +151,38 @@ function startBlinkingColorMessage() {
 }
 
 async function getUserId(proxy) {
-  // Implementasi login dan pengambilan userId
-  console.log("Implementasi login untuk mendapatkan userId akan ditempatkan di sini.");
-  // Misalnya: 
-  // const response = await axios.post("URL_LOGIN", { /* data login */ });
-  // const userId = response.data.userId;
-  // await setLocalStorage({ userId });
-  // return userId;
+  console.log("Attempting to log in...");
+
+  const loginData = {
+    // Ganti dengan kredensial login yang sesuai
+    username: 'your_username', // Masukkan username Anda
+    password: 'your_password'  // Masukkan password Anda
+  };
+
+  try {
+    const response = await axios.post('https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password', loginData, {
+      proxy: proxy ? {
+        host: proxy.split('@')[1].split(':')[0],
+        port: parseInt(proxy.split(':')[2]),
+        auth: {
+          username: proxy.split('//')[1].split(':')[0], // Username proxy
+          password: proxy.split(':')[2].split('@')[0], // Password proxy
+        },
+      } : false,
+    });
+
+    if (response.data && response.data.userId) {
+      console.log('Login successful:', response.data);
+      await setLocalStorage({ userId: response.data.userId });
+      console.log('User ID saved:', response.data.userId);
+      socket && socket.close(); // Tutup koneksi WebSocket jika ada
+      await connectWebSocket(response.data.userId, proxy);
+    } else {
+      console.error('Login failed:', response.data);
+    }
+  } catch (error) {
+    console.error('Error during login:', error.message || error);
+  }
 }
 
 async function main() {
@@ -184,32 +209,4 @@ async function main() {
             await getUserId(proxy);
             break;
           default:
-            console.log('Invalid option. Exiting...');
-            process.exit(0);
-        }
-      });
-    } else {
-      rl.question('Menu:\n1. Logout\n2. Start Running Node\nChoose an option: ', async (option) => {
-        switch (option) {
-          case '1':
-            fs.unlink('localStorage.json', (err) => {
-              if (err) throw err;
-              console.log('Logged out successfully.');
-              process.exit(0);
-            });
-            break;
-          case '2':
-            startTime = new Date(); // Simpan waktu mulai saat node dijalankan
-            await startBlinkingColorMessage();
-            await connectWebSocket(userId, proxy);
-            break;
-          default:
-            console.log('Invalid option. Exiting...');
-            process.exit(0);
-        }
-      });
-    }
-  });
-}
-
-main();
+            console.log('
