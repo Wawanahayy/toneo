@@ -130,12 +130,16 @@ function updateDisplay() {
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
+    const pingStatus = 'Active'; // Sesuaikan jika ada logika untuk status ping
+    const pointsToday = account.pointsToday.toString();
+    const pointsTotal = account.pointsTotal.toString();
 
-    console.log(`AKUN ${index + 1}:     | ${account.email}   |   ${currentTime} |    ${account.pointsToday}  |  ${proxyStatus}  | Active |   ${elapsedTime}  | Connected  | @AirdropJP_JawaPride`);
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(40)} | ${currentTime.padEnd(60)} | ${pointsToday.padEnd(20)} | ${pointsTotal.padEnd(20)} | ${proxyStatus.padEnd(10)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(60)} | ${websocketStatus.padEnd(20)} | @AirdropJP_JawaPride`);
   });
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 }
+
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
