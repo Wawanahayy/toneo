@@ -127,8 +127,7 @@ function updateDisplay() {
 
   console.clear();
 
-  let leftColumn = [];
-  let rightColumn = [];
+  let outputLines = []; // Menyimpan output untuk setiap baris
 
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
@@ -139,33 +138,28 @@ function updateDisplay() {
     const pointsToday = account.pointsToday ?? 0;
     const pointsTotal = account.pointsTotal ?? 0; 
 
-    // Mengisi kolom kiri dan kanan secara bergantian
+    // Mengisi informasi akun ke dalam satu baris
     const accountInfo = `
       ---------------------------------
-      ${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m
-      ${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m
-      ${colors[currentColorIndex]}Poin DAILY: ${pointsToday}\x1b[0m
-      ${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m
-      ${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m
-      ${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m
-      ${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m
-      ${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m
-      ${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m
-      ---------------------------------`;
+      AKUN ${index + 1}: ${account.email.padEnd(35)} | 
+      DATE/JAM  : ${currentTime.padEnd(30)} | 
+      Poin DAILY: ${pointsToday.toString().padEnd(30)} | 
+      Total Poin: ${pointsTotal.toString().padEnd(30)} | 
+      Proxy     : ${proxyStatus.padEnd(30)} | 
+      PING      : ${pingStatus.padEnd(30)} | 
+      TIME RUN  : ${elapsedTime.padEnd(30)} | 
+      Websocket : ${websocketStatus.padEnd(30)} | 
+      TELEGRAM  : @AirdropJP_JawaPride`.replace(/\n/g, ' '); // Menghapus baris baru
 
-    if (index % 2 === 0) {
-      leftColumn.push(accountInfo);
-    } else {
-      rightColumn.push(accountInfo);
-    }
+    // Menambahkan informasi akun ke dalam output
+    outputLines.push(accountInfo);
   });
 
-  // Menampilkan kolom kiri dan kanan
-  const maxLength = Math.max(leftColumn.length, rightColumn.length);
-  for (let i = 0; i < maxLength; i++) {
-    const leftLine = leftColumn[i] || '';
-    const rightLine = rightColumn[i] || '';
-    console.log(`${leftLine} | ${rightLine}`);
+  // Menampilkan semua informasi dalam dua kolom
+  for (let i = 0; i < outputLines.length; i += 2) {
+    const leftLine = outputLines[i] || '';
+    const rightLine = outputLines[i + 1] || '';
+    console.log(`${leftLine} ${rightLine}`); // Menampilkan dua akun dalam satu baris
   }
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
