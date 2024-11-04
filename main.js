@@ -3,7 +3,6 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const reset = '\x1b[0m';
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
 
 let sockets = [];
