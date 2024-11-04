@@ -134,7 +134,7 @@ function updateDisplay() {
     const pointsToday = account.pointsToday.toString();
     const pointsTotal = account.pointsTotal.toString();
 
-    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(20)} | ${currentTime.padEnd(20)} | ${pointsToday.padEnd(20)} | ${pointsTotal.padEnd(20)} | ${proxyStatus.padEnd(20)} | ${pingStatus.padEnd(20)} | ${elapsedTime.padEnd(20)} | ${websocketStatus.padEnd(20)} | @AirdropJP_JawaPride`);
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(10)} | ${pointsToday.padEnd(10)} | ${pointsTotal.padEnd(10)} | ${proxyStatus.padEnd(10)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(10)} | ${websocketStatus.padEnd(10)} | @AirdropJP_JawaPride`);
   });
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
