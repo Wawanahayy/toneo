@@ -176,13 +176,6 @@ function updateDisplay() {
 }
 
 
-    console.clear();
-    console.log(leftColumn.join('\n'));
-    console.log(rightColumn.join('\n'));
-}
-
-
-
 function startBlinkingColorMessage() {
   setInterval(updateDisplay, 1000);
 }
