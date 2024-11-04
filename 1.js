@@ -132,18 +132,17 @@ function updateDisplay() {
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    console.log(`---------------------------------`);
-    console.log(`${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`);
-    console.log(`---------------------------------`);
+
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${pointsToday.padEnd(11)} | ${pointsTotal.padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride`);
   });
+
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+}
+
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
