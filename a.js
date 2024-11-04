@@ -146,31 +146,39 @@ function updateDisplay() {
 
         const color = getRandomColor(); // Mendapatkan warna acak
 
-        // Format string untuk kolom kiri
+        // Format string untuk kolom kiri dan kanan
+        const leftAccountInfo = color(`AKUN ${index + 1}: ${account.email.padEnd(35)}`) +
+                                color(`DATE/JAM   : ${currentTime.padEnd(30)}`) +
+                                color(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`) +
+                                color(`Total Poin : ${pointsTotal.toString().padEnd(30)}`) +
+                                color(`Proxy      : ${proxyStatus.padEnd(30)}`) +
+                                color(`PING       : ${pingStatus.padEnd(30)}`) +
+                                color(`TIME RUN   : ${elapsedTime.padEnd(30)}`) +
+                                color(`Websocket  : ${websocketStatus.padEnd(30)}`) +
+                                color(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43));
+
+        // Masukkan informasi akun ke dalam kolom kiri dan kanan
         if (index % 2 === 0) { // Kolom kiri
-            leftColumn.push(color(`AKUN ${index + 1}: ${account.email.padEnd(35)}`));
-            leftColumn.push(color(`DATE/JAM   : ${currentTime.padEnd(30)}`));
-            leftColumn.push(color(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`));
-            leftColumn.push(color(`Total Poin : ${pointsTotal.toString().padEnd(30)}`));
-            leftColumn.push(color(`Proxy      : ${proxyStatus.padEnd(30)}`));
-            leftColumn.push(color(`PING       : ${pingStatus.padEnd(30)}`));
-            leftColumn.push(color(`TIME RUN   : ${elapsedTime.padEnd(30)}`));
-            leftColumn.push(color(`Websocket  : ${websocketStatus.padEnd(30)}`));
-            leftColumn.push(color(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)));
+            leftColumn.push(leftAccountInfo);
             leftColumn.push(header);
         } else { // Kolom kanan
-            rightColumn.push(color(`AKUN ${index + 1}: ${account.email.padEnd(36)}`));
-            rightColumn.push(color(`DATE/JAM   : ${currentTime.padEnd(30)}`));
-            rightColumn.push(color(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`));
-            rightColumn.push(color(`Total Poin : ${pointsTotal.toString().padEnd(30)}`));
-            rightColumn.push(color(`Proxy      : ${proxyStatus.padEnd(30)}`));
-            rightColumn.push(color(`PING       : ${pingStatus.padEnd(30)}`));
-            rightColumn.push(color(`TIME RUN   : ${elapsedTime.padEnd(30)}`));
-            rightColumn.push(color(`Websocket  : ${websocketStatus.padEnd(30)}`));
-            rightColumn.push(color(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)));
-            rightColumn.push('---------------------------------------------------------------------------------');
+            rightColumn.push(leftAccountInfo);
+            rightColumn.push(header);
         }
     });
+
+    // Pad kolom kanan jika jumlah akun ganjil
+    if (accountsData.length % 2 !== 0) {
+        rightColumn.push(' '.padEnd(100)); // Menambahkan baris kosong di kolom kanan
+    }
+
+    console.clear();
+    // Menggabungkan kedua kolom untuk ditampilkan berdampingan
+    for (let i = 0; i < Math.max(leftColumn.length, rightColumn.length); i++) {
+        console.log(leftColumn[i] || '', rightColumn[i] || '');
+    }
+}
+
 
     console.clear();
     console.log(leftColumn.join('\n'));
