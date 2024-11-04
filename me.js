@@ -140,7 +140,6 @@ function updateDisplay() {
     const pointsTotal = account.pointsTotal ?? 0; // Jika undefined, gunakan 0
 
     if (index % 2 === 0) {
-      leftColumn.push('--------------------------------------------------');
       leftColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(30)}`);
       leftColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
       leftColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
@@ -152,7 +151,6 @@ function updateDisplay() {
       leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(30)`);
       leftColumn.push('--------------------------------------------------');
     } else {
-      leftColumn.push('--------------------------------------------------');
       rightColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(30)}`);
       rightColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
       rightColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
