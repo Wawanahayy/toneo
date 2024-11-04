@@ -138,27 +138,27 @@ function updateDisplay() {
 
     // Mengisi kolom kiri dan kanan
     if (index % 2 === 0) {
-      leftColumn.push(`AKUN ${index + 1}: ${account.email}`);
-      leftColumn.push(`DATE/JAM  : ${currentTime}`);
-      leftColumn.push(`Poin DAILY : ${account.pointsToday}`);
-      leftColumn.push(`Total Poin : ${account.pointsTotal}`);
-      leftColumn.push(`Proxy      : ${proxyStatus}`);
-      leftColumn.push(`PING       : ${pingStatus}`);
-      leftColumn.push(`TIME RUN   : ${elapsedTime}`);
-      leftColumn.push(`Websocket  : ${websocketStatus}`);
-      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`);
-      leftColumn.push('-----------------------------------------------------------------------------------');
+      leftColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(30)}`);
+      leftColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
+      leftColumn.push(`Poin DAILY : ${account.pointsToday.toString().padEnd(30)}`);
+      leftColumn.push(`Total Poin : ${account.pointsTotal.toString().padEnd(30)}`);
+      leftColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
+      leftColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
+      leftColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
+      leftColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
+      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(30)`);
+      leftColumn.push('---------------------------------------------------');
     } else {
-      rightColumn.push(`AKUN ${index + 1}: ${account.email}`);
-      rightColumn.push(`DATE/JAM  : ${currentTime}`);
-      rightColumn.push(`Poin DAILY : ${account.pointsToday}`);
-      rightColumn.push(`Total Poin : ${account.pointsTotal}`);
-      rightColumn.push(`Proxy      : ${proxyStatus}`);
-      rightColumn.push(`PING       : ${pingStatus}`);
-      rightColumn.push(`TIME RUN   : ${elapsedTime}`);
-      rightColumn.push(`Websocket  : ${websocketStatus}`);
-      rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`);
-      rightColumn.push('-----------------------------------------------------------------------------------');
+      rightColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(30)}`);
+      rightColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
+      rightColumn.push(`Poin DAILY : ${account.pointsToday.toString().padEnd(30)}`);
+      rightColumn.push(`Total Poin : ${account.pointsTotal.toString().padEnd(30)}`);
+      rightColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
+      rightColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
+      rightColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
+      rightColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
+      rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(30)`);
+      rightColumn.push('-------------------------------------------------');
     }
   });
 
@@ -166,7 +166,7 @@ function updateDisplay() {
   for (let i = 0; i < Math.max(leftColumn.length, rightColumn.length); i++) {
     const leftLine = leftColumn[i] || '';
     const rightLine = rightColumn[i] || '';
-    console.log(`${leftLine}    |    ${rightLine}`);
+    console.log(`${leftLine} | ${rightLine}`);
   }
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
