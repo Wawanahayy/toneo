@@ -141,7 +141,6 @@ function updateDisplay() {
 
         // Format untuk satu akun
         const accountInfo = `
----------------------------------
 AKUN ${index + 1}: ${account.email}
 DATE/JAM  : ${currentTime}
 Poin DAILY: ${pointsToday}
@@ -155,27 +154,37 @@ TELEGRAM  : @AirdropJP_JawaPride
 
         // Mengisi kolom kiri dan kanan secara bergantian
         if (index % 2 === 0) {
-            leftColumn.push(accountInfo);
+            leftColumn.push(accountInfo.trim());
         } else {
-            rightColumn.push(accountInfo);
+            rightColumn.push(accountInfo.trim());
         }
     });
 
     // Menampilkan kolom kiri dan kanan
     const maxLength = Math.max(leftColumn.length, rightColumn.length);
     for (let i = 0; i < maxLength; i++) {
-        const leftLine = leftColumn[i] ? leftColumn[i].trim() : '';
-        const rightLine = rightColumn[i] ? rightColumn[i].trim() : '';
-        const combinedLine = `${leftLine} ${' '.repeat(15)}| ${rightLine}`;
+        const leftLine = leftColumn[i] ? leftColumn[i] : '';
+        const rightLine = rightColumn[i] ? rightColumn[i] : '';
+        const combinedLine = `${leftLine}${' '.repeat(5)}| ${rightLine}`;
         console.log(combinedLine);
     }
-
-    currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
-function startBlinkingColorMessage() {
-    setInterval(updateDisplay, 1000);
+// Fungsi formatDate dan calculateElapsedTime harus didefinisikan sebelumnya
+function formatDate(date) {
+    return date.toTimeString().split(' ')[0]; // Format: HH:MM:SS
 }
+
+function calculateElapsedTime() {
+    // Logika untuk menghitung waktu yang telah berlalu
+    return '00:18'; // Contoh nilai waktu yang berlalu
+}
+
+const accountsData = [
+    { email: 'malikaaee12@gmail.com', proxy: true, pointsToday: 0, pointsTotal: 3025, pingStatus: 'Active', socket: { readyState: WebSocket.OPEN } },
+    { email: 'wawanpere2@gmail.com', proxy: true, pointsToday: 2500, pointsTotal: 2500, pingStatus: 'Active', socket: { readyState: WebSocket.OPEN } },
+    { email: 'perewawan@gmail.com', proxy: true, pointsToday: 2500, pointsTotal: 2500, pingStatus: 'Active', socket: { readyState: WebSocket.OPEN } },
+    { email: 'wawanpere1@gmail.com', proxy: true, pointsToday: 25
 
 
 
