@@ -3,15 +3,16 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
-let currentColorIndex = 0; // Indeks untuk warna yang berkedip
+
 let sockets = [];
 let pingIntervals = [];
-let accountsData = [];
-let startTime;
-let lastPingTime;
-const pingInterval = 10000; // Interval ping
+let isFirstMessage = {}; // Objek untuk melacak pesan pertama per akun
+let currentColorIndex = 0; // Inisialisasi currentColorIndex
+let lastPingTime; // Variabel untuk melacak waktu ping terakhir
+let pingInterval = 30000; // Interval ping dalam milidetik
+let accountsData = []; // Menyimpan data akun
+let startTime; // Menyimpan waktu mulai
 
 function formatDate(date) {
   return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -43,12 +44,10 @@ async function connectWebSocket(userId, email, proxy) {
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   let agent;
-  
   if (proxy) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
     agent = new HttpsProxyAgent(proxyUrl);
   }
-  
   const socket = new WebSocket(wsUrl, { agent });
 
   socket.onopen = async () => {
@@ -58,12 +57,14 @@ async function connectWebSocket(userId, email, proxy) {
       account.socket = socket;
       account.pingStatus = 'Active';
     }
-    startPing(socket, email);
+    startPing(socket, email); 
+    startBlinkingColorMessage();
     updateDisplay();
   };
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
+    
     if (data.type === "pong") {
       const pingTime = Date.now() - lastPingTime;
       console.log(`Ping untuk user ${email}: ${pingTime} ms`);
@@ -96,10 +97,10 @@ function startPing(socket, email) {
   setInterval(() => {
     if (socket.readyState === WebSocket.OPEN) {
       lastPingTime = Date.now();
-      socket.send(JSON.stringify({ type: "ping" }));
+      socket.send(JSON.stringify({ type: "ping" })); 
       const account = accountsData.find(account => account.email === email);
       if (account) {
-        account.pingStatus = 'Active';
+        account.pingStatus = 'Active'; 
       }
     }
   }, pingInterval);
@@ -108,12 +109,13 @@ function startPing(socket, email) {
 function updateDisplay() {
   const currentTime = formatDate(new Date());
   const elapsedTime = calculateElapsedTime();
+
   console.clear();
 
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive';
+    const pingStatus = account.pingStatus || 'Inactive'; 
 
     console.log(`---------------------------------`);
     console.log(`${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m`);
@@ -132,13 +134,13 @@ function updateDisplay() {
 }
 
 function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 1000); // Mengupdate display setiap detik
+  setInterval(updateDisplay, 1000);
 }
 
 async function getUserId(email, password) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer YOUR_AUTH_TOKEN_HERE"; // Ganti dengan token yang benar
-  const apikey = "YOUR_API_KEY_HERE"; // Ganti dengan API key yang benar
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   console.log(`Attempting to log in with email: ${email}`);
 
@@ -192,8 +194,6 @@ async function main() {
       console.error("Email and password must be provided for each account.");
     }
   }
-
-  startBlinkingColorMessage(); // Mulai efek berkedip setelah semua koneksi
 }
 
 main().catch(console.error);
