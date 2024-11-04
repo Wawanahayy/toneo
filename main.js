@@ -13,8 +13,6 @@ const writeFileAsync = promisify(fs.writeFile);
 // Fungsi untuk mendapatkan user ID
 async function getUserId() {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   // Membaca data dari account.json
   const accountData = JSON.parse(await fs.readFile('account.json', 'utf8'));
@@ -27,12 +25,11 @@ async function getUserId() {
       password
     }, {
       headers: {
-        authorization,
-        apikey,
         "Content-Type": "application/json"
       }
     });
 
+    console.log("Response Data:", response.data); // Log respons untuk debugging
     if (response.data && response.data.user) {
       console.log(`User ID: ${response.data.user.id}`);
       return response.data.user.id;
