@@ -133,8 +133,9 @@ function updateDisplay() {
     const leftColumn = [];
     const rightColumn = [];
 
-    leftColumn.push('--------------------------------------------------------------------------------');
-    rightColumn.push('--------------------------------------------------------------------------------');
+    const header = '--------------------------------------------------------------------------------';
+    leftColumn.push(header);
+    rightColumn.push(header);
 
     accountsData.forEach((account, index) => {
         const pointsToday = account.pointsToday || 0;
@@ -145,6 +146,7 @@ function updateDisplay() {
 
         const color = getRandomColor(); // Mendapatkan warna acak
 
+        // Format string untuk kolom kiri
         if (index % 2 === 0) { // Kolom kiri
             leftColumn.push(color(`AKUN ${index + 1}: ${account.email.padEnd(35)}`));
             leftColumn.push(color(`DATE/JAM   : ${currentTime.padEnd(30)}`));
@@ -155,7 +157,7 @@ function updateDisplay() {
             leftColumn.push(color(`TIME RUN   : ${elapsedTime.padEnd(30)}`));
             leftColumn.push(color(`Websocket  : ${websocketStatus.padEnd(30)}`));
             leftColumn.push(color(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)));
-            leftColumn.push('--------------------------------------------------------------------------------');
+            leftColumn.push(header);
         } else { // Kolom kanan
             rightColumn.push(color(`AKUN ${index + 1}: ${account.email.padEnd(36)}`));
             rightColumn.push(color(`DATE/JAM   : ${currentTime.padEnd(30)}`));
@@ -174,6 +176,7 @@ function updateDisplay() {
     console.log(leftColumn.join('\n'));
     console.log(rightColumn.join('\n'));
 }
+
 
 
 function startBlinkingColorMessage() {
