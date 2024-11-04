@@ -204,49 +204,63 @@ async function updateCountdownAndPoints() {
   await setLocalStorage({ potentialPoints, countdown });
 }
 
-async function getUserId(account, index) {
+async function getUserId(email, password) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  const email = account.email;
-  const password = account.password;
+  console.log(`Attempting to log in with email: ${email}`);
 
-  return new Promise(async (resolve) => {
-    try {
-      const response = await axios.post(loginUrl, { email, password }, {
-        headers: {
-          authorization,
-          apikey,
-          "Content-Type": "application/json"
-        }
-      });
-      if (response.data.user) {
-        await Sync('successful_accounts.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`);
-        resolve(response.data.user.id);
-      } else {
-        console.log(`Failed to get User ID for account ${index + 1}`);
-        resolve(null);
+  try {
+    const response = await axios.post(loginUrl, {
+      email,
+      password
+    }, {
+      headers: {
+        authorization,
+        apikey,
+        "Content-Type": "application/json"
       }
-    } catch (error) {
-      console.error(`Error getting User ID for account ${index + 1}:`, error);
-      resolve(null);
-    }
-  });
-}
+    });
 
-async function startProcess() {
-  const accounts = await readJSONFile('account.json');
-  if (!accounts) return;
-
-  for (let index = 0; index < accounts.length; index++) {
-    const account = accounts[index];
-    const userId = await getUserId(account, index);
-    if (userId) {
-      await connectWebSocket(userId, account.proxy, index);
+    if (response.data && response.data.user) {
+      console.log(`User ID: ${response.data.user.id}`);
+      return response.data.user.id;
+    } else {
+      console.error("User not found.");
+      return null;
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  } catch (error) {
+    console.error("Error during login:", error.response ? error.response.data : error.message);
+    return null;
   }
 }
 
-startProcess();
+async function main() {
+  const config = await getConfig();
+  const accounts = config.accounts;
+
+  startTime = new Date();
+
+  for (const account of accounts) {
+    if (account.email && account.password) {
+      const userId = await getUserId(account.email, account.password);
+      if (userId) {
+        accountsData.push({
+          email: account.email,
+          pointsTotal: 0,
+          pointsToday: 0,
+          proxy: account.proxy ? true : false,
+          pingStatus: 'Inactive'
+        });
+        await connectWebSocket(userId, account.email, account.proxy);
+      } else {
+        console.error(`Failed to retrieve user ID for ${account.email}.`);
+      }
+    } else {
+      console.error("Email and password must be provided for each account.");
+    }
+  }
+}
+
+main().catch(console.error);
