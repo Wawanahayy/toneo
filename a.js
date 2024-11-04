@@ -124,7 +124,7 @@ function updateDisplay() {
   console.clear();
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:   | TELEGRAM: ");
+  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:  |  TELEGRAM: ");
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   accountsData.forEach((account, index) => {
