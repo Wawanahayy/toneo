@@ -1,19 +1,11 @@
 const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
-const readline = require('readline');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-let socket = null;
-let pingInterval;
-let countdownInterval;
-let logInterval;
-let potentialPoints = 0;
-let countdown = "Calculating...";
-let pointsTotal = 0;
-let pointsToday = 0;
-let startTime; 
+let sockets = []; // Menggunakan array untuk menyimpan semua socket
+let pingIntervals = []; // Array untuk menyimpan interval PING
 
 const readFileAsync = promisify(fs.readFile);
 
