@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
-const HttpsProxyAgent = require('https-proxy-agent');
+const HttpsProxyAgent = require('https-proxy-agent').HttpsProxyAgent;
 
 let accountsData = [];
 let currentColorIndex = 0;
