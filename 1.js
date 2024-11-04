@@ -143,7 +143,7 @@ function updateDisplay() {
     const pingStatus = account.pingStatus || 'Inactive';
 
     // Menampilkan informasi akun dengan warna berkedip
-    console.log(colors[colorIndex] + ` AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
+  console.log(` ACCOUNT     | ${accountName.padEnd(10)} | ${account.email.padEnd(30)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(12)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride.padEnd(20)`);
   });
 
   // Menampilkan garis pemisah di bawah tabel
