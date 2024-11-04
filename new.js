@@ -3,10 +3,11 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m']; // Misalnya, definisikan beberapa warna
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
 
-let sockets = []; // Menggunakan array untuk menyimpan semua socket
-let pingIntervals = []; // Array untuk menyimpan interval PING
+let sockets = [];
+let pingIntervals = [];
+let isFirstMessage = {}; // Objek untuk melacak pesan pertama per akun
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -29,43 +30,54 @@ async function connectWebSocket(userId, proxy, account, accountIndex) {
   const wsOptions = { agent };
 
   const socket = new WebSocket(wsUrl, wsOptions);
-  sockets.push(socket); // Menyimpan socket ke dalam array
+  sockets.push(socket);
 
   socket.onopen = () => {
     console.log(`WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})`);
-    startPing(socket, accountIndex); // Mulai mengirim PING setelah koneksi terbuka
+    startPing(socket, accountIndex);
 
-    // Mendapatkan waktu saat ini
     const currentTime = new Date().toLocaleString();
-    // Contoh status proxy dan ping
     const proxyStatus = proxy ? 'Aktif' : 'Tidak Aktif';
-    const pingStatus = 'Aktif'; // Bisa menambahkan logika tambahan untuk memeriksa status ping
-    const elapsedTime = '0'; // Waktu yang telah berlalu
+    const pingStatus = 'Aktif';
+    const elapsedTime = '0';
     const websocketStatus = 'Terhubung';
 
-    // Menampilkan log
-    const currentColorIndex = accountIndex % colors.length; // Untuk mengganti warna
+    const currentColorIndex = accountIndex % colors.length;
     console.log(`---------------------------------`);
     console.log(`${colors[currentColorIndex]}AKUN ${accountIndex + 1}: ${account.email}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}Poin DAILY: undefined\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}Total Poin: undefined\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`);
     console.log(`---------------------------------`);
+
+    isFirstMessage[accountIndex] = true; // Tandai sebagai pesan pertama untuk akun ini
   };
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log(`Received message for account ${accountIndex + 1}:`, data);
+    
+    // Menampilkan pesan pertama sekali dengan log yang diterima
+    if (isFirstMessage[accountIndex]) {
+      console.log(`Received first message for account ${accountIndex + 1}:`);
+      console.log(`Tanggal: ${new Date(data.date).toLocaleString()}`);
+      console.log(`Poin DAILY: ${data.pointsToday}`);
+      console.log(`Total Poin: ${data.pointsTotal}`);
+      console.log(`Pesan: ${data.message}`);
+      console.log(`Pengguna Baru: ${data.isNewUser}`);
+      
+      // Tandai bahwa pesan pertama telah diterima
+      isFirstMessage[accountIndex] = false;
+    }
   };
 
   socket.onclose = () => {
     console.log(`WebSocket disconnected for account ${accountIndex + 1}`);
-    removeSocket(socket); // Menghapus socket dari array
+    removeSocket(socket);
   };
 
   socket.onerror = (error) => {
@@ -76,25 +88,25 @@ async function connectWebSocket(userId, proxy, account, accountIndex) {
 function startPing(socket, accountIndex) {
   const pingInterval = setInterval(() => {
     if (socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'PING' })); // Mengirim PING tanpa log
+      socket.send(JSON.stringify({ type: 'PING' }));
     }
-  }, 5000); // Kirim PING setiap 5 detik
-  pingIntervals.push(pingInterval); // Simpan interval PING
+  }, 5000);
+  pingIntervals.push(pingInterval);
 }
 
 function removeSocket(socket) {
   const index = sockets.indexOf(socket);
   if (index > -1) {
     sockets.splice(index, 1);
-    clearInterval(pingIntervals[index]); // Hentikan interval PING jika socket terputus
-    pingIntervals.splice(index, 1); // Hapus interval dari array
+    clearInterval(pingIntervals[index]);
+    pingIntervals.splice(index, 1);
   }
 }
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const authorization = "Bearer <YOUR_TOKEN_HERE>";
+  const apikey = "<YOUR_API_KEY_HERE>";
 
   const email = account.email;
   const password = account.password;
@@ -111,7 +123,6 @@ async function getUserId(account, index) {
 
       if (response.data && response.data.user) {
         console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
-        fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
         resolve(response.data.user.id);
       } else {
         console.error(`User not found for account ${index + 1}.`);
