@@ -130,23 +130,28 @@ function updateDisplay() {
     const currentTime = formatDate(new Date());
     const elapsedTime = calculateElapsedTime();
 
+    const columns = Math.ceil(accountsData.length / 2); // Menghitung jumlah kolom yang dibutuhkan
     const leftColumn = [];
     const rightColumn = [];
 
     leftColumn.push('--------------------------------------------------------------------------------');
     rightColumn.push('--------------------------------------------------------------------------------');
 
-    accountsData.forEach((account, index) => {
-        const pointsToday = account.pointsToday || 0;
-        const pointsTotal = account.pointsTotal || 0;
-        const proxyStatus = account.proxy ? 'true' : 'false';
-        const pingStatus = account.pingStatus || 'Inactive';
-        const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+    for (let i = 0; i < columns; i++) {
+        const leftAccountIndex = i; // Indeks untuk kolom kiri
+        const rightAccountIndex = i + columns; // Indeks untuk kolom kanan
 
-        const color = getRandomColor(); // Mendapatkan warna acak
+        // Kolom kiri
+        if (leftAccountIndex < accountsData.length) {
+            const account = accountsData[leftAccountIndex];
+            const pointsToday = account.pointsToday || 0;
+            const pointsTotal = account.pointsTotal || 0;
+            const proxyStatus = account.proxy ? 'true' : 'false';
+            const pingStatus = account.pingStatus || 'Inactive';
+            const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+            const color = getRandomColor();
 
-        if (index % 2 === 0) { // Kolom kiri
-            leftColumn.push(color(`AKUN ${index + 1}: ${account.email.padEnd(35)}`));
+            leftColumn.push(color(`AKUN ${leftAccountIndex + 1}: ${account.email.padEnd(35)}`));
             leftColumn.push(color(`DATE/JAM   : ${currentTime.padEnd(30)}`));
             leftColumn.push(color(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`));
             leftColumn.push(color(`Total Poin : ${pointsTotal.toString().padEnd(30)}`));
@@ -156,8 +161,19 @@ function updateDisplay() {
             leftColumn.push(color(`Websocket  : ${websocketStatus.padEnd(30)}`));
             leftColumn.push(color(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)));
             leftColumn.push('--------------------------------------------------------------------------------');
-        } else { // Kolom kanan
-            rightColumn.push(color(`AKUN ${index + 1}: ${account.email.padEnd(36)}`));
+        }
+
+        // Kolom kanan
+        if (rightAccountIndex < accountsData.length) {
+            const account = accountsData[rightAccountIndex];
+            const pointsToday = account.pointsToday || 0;
+            const pointsTotal = account.pointsTotal || 0;
+            const proxyStatus = account.proxy ? 'true' : 'false';
+            const pingStatus = account.pingStatus || 'Inactive';
+            const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+            const color = getRandomColor();
+
+            rightColumn.push(color(`AKUN ${rightAccountIndex + 1}: ${account.email.padEnd(36)}`));
             rightColumn.push(color(`DATE/JAM   : ${currentTime.padEnd(30)}`));
             rightColumn.push(color(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`));
             rightColumn.push(color(`Total Poin : ${pointsTotal.toString().padEnd(30)}`));
@@ -168,7 +184,7 @@ function updateDisplay() {
             rightColumn.push(color(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)));
             rightColumn.push('---------------------------------------------------------------------------------');
         }
-    });
+    }
 
     console.clear();
     console.log(leftColumn.join('\n'));
