@@ -107,12 +107,15 @@ async function main() {
     const account = accounts[i];
     const proxy = proxies[i];
     const userId = await getUserId(account, i);
+    
     if (userId) {
+      // Hanya sambungkan WebSocket jika userId valid
       await connectWebSocket(userId, proxy);
     } else {
       console.error(`Failed to retrieve user ID for account ${i + 1}.`);
     }
   }
 }
+
 
 main().catch(console.error);
