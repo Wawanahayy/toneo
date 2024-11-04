@@ -121,8 +121,6 @@ function startPing(socket, email) {
   pingIntervals.push(pingId);
 }
 
-fconst colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m']; // Warna untuk teks
-let colorIndex = 0; // Indeks warna yang akan digunakan
 
 function updateDisplay(accountsData) {
   const currentTime = formatDate(new Date());
