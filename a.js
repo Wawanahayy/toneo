@@ -3,7 +3,7 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
+const colorList = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m']; 
 const colorReset = '\x1b[0m'; 
 
 
