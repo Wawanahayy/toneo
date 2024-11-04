@@ -147,7 +147,7 @@ function updateDisplay() {
 
 // Fungsi untuk memulai tampilan berkedip
 function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 1000); // Ubah warna setiap 1 detik
+  setInterval(updateDisplay, 3000); // Ubah warna setiap 1 detik
 }
 
 // Memulai efek berkedip
