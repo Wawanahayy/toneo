@@ -197,3 +197,5 @@ async function getUserId(account, index) {
       }
     } catch (error) {
       console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+
+main();
