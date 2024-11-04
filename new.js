@@ -3,6 +3,7 @@ const { promisify } = require('util');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 let socket = null;
 let pingInterval;
