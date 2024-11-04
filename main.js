@@ -2,10 +2,7 @@ const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
-const { HttpsProxyAgent } = require('https-proxy-agent'); // Ubah ini
-
-let socket = null;
-let startTime;
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -20,7 +17,6 @@ async function readJSONFile(filePath) {
 }
 
 async function connectWebSocket(userId, proxy) {
-  if (socket) return;
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro"; // URL WebSocket
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
@@ -32,33 +28,30 @@ async function connectWebSocket(userId, proxy) {
     agent
   };
 
-  socket = new WebSocket(wsUrl, wsOptions);
-
-  startTime = new Date();
+  const socket = new WebSocket(wsUrl, wsOptions);
 
   socket.onopen = () => {
-    console.log("WebSocket connected");
+    console.log(`WebSocket connected for user ID: ${userId}`);
   };
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log(`Received message:`, data);
+    console.log(`Received message for user ID ${userId}:`, data);
   };
 
   socket.onclose = () => {
-    socket = null;
-    console.log("WebSocket disconnected");
+    console.log(`WebSocket disconnected for user ID: ${userId}`);
   };
 
   socket.onerror = (error) => {
-    console.error("WebSocket error:", error);
+    console.error(`WebSocket error for user ID ${userId}:`, error);
   };
 }
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
