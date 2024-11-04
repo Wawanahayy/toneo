@@ -12,7 +12,7 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
-let startTime; // Untuk menyimpan waktu mulai
+let startTime;
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
@@ -56,21 +56,16 @@ async function addProxy(proxy) {
   await writeFileAsync('proxies.json', JSON.stringify(proxies, null, 2));
 }
 
-async function getLocalStorage() {
-  try {
-    const data = await readFileAsync('localStorage.json', 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {};
-  }
+// Fungsi untuk mendapatkan userId
+async function getUserId() {
+  return new Promise((resolve) => {
+    rl.question('Enter your user ID: ', (userId) => {
+      resolve(userId);
+    });
+  });
 }
 
-async function setLocalStorage(data) {
-  const currentData = await getLocalStorage();
-  const newData = { ...currentData, ...data };
-  await writeFileAsync('localStorage.json', JSON.stringify(newData));
-}
-
+// Fungsi untuk menghubungkan ke WebSocket
 async function connectWebSocket(userId) {
   if (socket) return;
   const version = "v0.2";
@@ -78,47 +73,22 @@ async function connectWebSocket(userId) {
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   socket = new WebSocket(wsUrl);
 
-  startTime = new Date(); // Menyimpan waktu mulai saat koneksi WebSocket
+  startTime = new Date();
 
   socket.onopen = async () => {
-    const connectionTime = new Date();
-    const formattedConnectionTime = formatDate(connectionTime);
-    await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
-    console.log("WebSocket connected at", formattedConnectionTime);
-    startPinging();
-    startCountdownAndPoints();
-    startLogUpdates();
+    console.log("WebSocket connected");
+    // Implementasi lebih lanjut...
   };
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-    const messageTime = new Date(data.date);
-    const formattedMessageTime = formatDate(messageTime);
-    
-    data.DATE = formattedMessageTime;
-
-    console.log(`Received message from WebSocket:`, {
-      ...data,
-      currentTime: formatDate(new Date())
-    });
-
-    if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-      const lastUpdated = new Date().toISOString();
-      await setLocalStorage({
-        lastUpdated: lastUpdated,
-        pointsTotal: data.pointsTotal,
-        pointsToday: data.pointsToday,
-      });
-      pointsTotal = data.pointsTotal;
-      pointsToday = data.pointsToday;
-    }
+    console.log(`Received message:`, data);
+    // Implementasi lebih lanjut...
   };
 
   socket.onclose = () => {
     socket = null;
     console.log("WebSocket disconnected");
-    stopPinging();
-    stopLogUpdates();
   };
 
   socket.onerror = (error) => {
@@ -126,56 +96,37 @@ async function connectWebSocket(userId) {
   };
 }
 
-function disconnectWebSocket() {
-  if (socket) {
-    socket.close();
-    socket = null;
-    stopPinging();
-    stopLogUpdates();
-  }
-}
-
-// ... (bagian kode lainnya tidak berubah)
-
+// Fungsi utama
 async function main() {
-  try {
-    rl.question('Do you want to add an account? (yes/no): ', async (answer) => {
-      if (answer.toLowerCase() === 'yes') {
-        rl.question('Email: ', (email) => {
-          rl.question('Password: ', async (password) => {
-            await addAccount(email, password);
-            console.log('Account added!');
+  rl.question('Do you want to add an account? (yes/no): ', async (answer) => {
+    if (answer.toLowerCase() === 'yes') {
+      rl.question('Email: ', (email) => {
+        rl.question('Password: ', async (password) => {
+          await addAccount(email, password);
+          console.log('Account added!');
+          rl.close();
+        });
+      });
+    } else {
+      rl.question('Do you want to add a proxy? (yes/no): ', async (answer) => {
+        if (answer.toLowerCase() === 'yes') {
+          rl.question('Proxy: ', async (proxy) => {
+            await addProxy(proxy);
+            console.log('Proxy added!');
             rl.close();
-            const accounts = await getAccounts();
-            console.log('Current accounts:', accounts);
           });
-        });
-      } else {
-        rl.question('Do you want to add a proxy? (yes/no): ', async (answer) => {
-          if (answer.toLowerCase() === 'yes') {
-            rl.question('Proxy: ', async (proxy) => {
-              await addProxy(proxy);
-              console.log('Proxy added!');
-              rl.close();
-              const proxies = await getProxies();
-              console.log('Current proxies:', proxies);
-            });
+        } else {
+          const userId = await getUserId();
+          if (userId) {
+            await connectWebSocket(userId);
           } else {
-            const userId = await getUserId();
-            if (userId) {
-              await connectWebSocket(userId);
-            } else {
-              console.error("Failed to retrieve user ID.");
-              rl.close();
-            }
+            console.error("Failed to retrieve user ID.");
+            rl.close();
           }
-        });
-      }
-    });
-  } catch (error) {
-    console.error("An error occurred:", error);
-  }
+        }
+      });
+    }
+  });
 }
-
 
 main().catch(console.error);
