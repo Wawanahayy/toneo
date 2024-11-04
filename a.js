@@ -4,6 +4,8 @@ const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
+const reset = '\x1b[0m';
+
 
 let sockets = [];
 let pingIntervals = [];
