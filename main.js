@@ -1,17 +1,10 @@
 const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
-const readline = require('readline');
 const axios = require('axios');
+const HttpsProxyAgent = require('https-proxy-agent'); // Pastikan mengimpor HttpsProxyAgent
 
 let socket = null;
-let pingInterval;
-let countdownInterval;
-let logInterval;
-let potentialPoints = 0;
-let countdown = "Calculating...";
-let pointsTotal = 0;
-let pointsToday = 0;
 let startTime; // Untuk menyimpan waktu mulai
 
 const readFileAsync = promisify(fs.readFile);
@@ -29,7 +22,7 @@ async function readJSONFile(filePath) {
 async function connectWebSocket(userId, proxy) {
   if (socket) return;
   const version = "v0.2";
-  const url = "wss://secure.ws.teneo.pro";
+  const url = "wss://secure.ws.teneo.pro"; // URL WebSocket
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
   // Mengatur proxy di WebSocket
@@ -62,6 +55,7 @@ async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+
 
   const email = account.email;
   const password = account.password;
