@@ -102,18 +102,18 @@ async function main() {
     return;
   }
 
-for (let i = 0; i < accounts.length; i++) {
-  const account = accounts[i];
-  const proxy = proxies[i];
-  const userId = await getUserId(account, i);
-  
-  if (userId) {
-    // Hanya sambungkan WebSocket jika userId valid
-    await connectWebSocket(userId, proxy, i); // Tambahkan index akun
-  } else {
-    console.error(`Failed to retrieve user ID for account ${i + 1}.`);
+  for (let i = 0; i < accounts.length; i++) {
+    const account = accounts[i];
+    const proxy = proxies[i];
+    const userId = await getUserId(account, i);
+    
+    if (userId) {
+      // Hanya sambungkan WebSocket jika userId valid
+      await connectWebSocket(userId, proxy, i); // Tambahkan index akun
+    } else {
+      console.error(`Failed to retrieve user ID for account ${i + 1}.`);
+    }
   }
 }
-
 
 main().catch(console.error);
