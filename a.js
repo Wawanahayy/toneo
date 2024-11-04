@@ -3,12 +3,14 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m']; // Warna tambahan
 
 let sockets = [];
 let pingIntervals = [];
+let isFirstMessage = {};
+let colorIndex = 0; // Menggunakan index warna untuk kedip
 let lastPingTime;
-let pingInterval = 30000; // Anda dapat mengonfigurasi ini
+let pingInterval = 30000; // Anda bisa membuat ini dapat diatur
 let accountsData = [];
 let startTime;
 
@@ -37,108 +39,35 @@ async function getConfig() {
   }
 }
 
-async function connectWebSocket(userId, email, proxy) {
-  const version = "v0.2";
-  const url = "wss://secure.ws.teneo.pro";
-  const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
-  let agent;
-  if (proxy) {
-    const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
-    agent = new HttpsProxyAgent(proxyUrl);
-  }
-  const socket = new WebSocket(wsUrl, { agent });
-
-  socket.onopen = () => {
-    console.log(`WebSocket connected for user: ${email}`);
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.socket = socket;
-      account.pingStatus = 'Active';
-    }
-    startPing(socket, email);
-    updateDisplay();
-  };
-
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    handleIncomingMessage(data, email);
-  };
-
-  socket.onclose = () => {
-    console.log(`WebSocket disconnected for user: ${email}`);
-    handleReconnect(email, proxy);
-  };
-
-  socket.onerror = (error) => {
-    console.error(`WebSocket error for user ${email}:`, error);
-  };
-}
-
-function handleIncomingMessage(data, email) {
-  if (data.type === "pong") {
-    const pingTime = Date.now() - lastPingTime;
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.pingStatus = 'Active';
-    }
-  }
-
-  if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.pointsTotal = data.pointsTotal;
-      account.pointsToday = data.pointsToday;
-      updateDisplay();
-    }
-  }
-}
-
-function handleReconnect(email, proxy) {
-  console.log(`Attempting to reconnect WebSocket for user: ${email}`);
-  setTimeout(() => {
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      connectWebSocket(account.userId, email, proxy);
-    }
-  }, 5000); // Reconnect after 5 seconds
-}
-
-function startPing(socket, email) {
-  const pingId = setInterval(() => {
-    if (socket.readyState === WebSocket.OPEN) {
-      lastPingTime = Date.now();
-      socket.send(JSON.stringify({ type: "ping" }));
-      const account = accountsData.find(account => account.email === email);
-      if (account) {
-        account.pingStatus = 'Active';
-      }
-    }
-  }, pingInterval);
-  pingIntervals.push(pingId);
-}
-
 function updateDisplay() {
   const currentTime = formatDate(new Date());
   const elapsedTime = calculateElapsedTime();
 
   console.clear();
 
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = 'Active'; // Sesuaikan jika ada logika untuk status ping
-    const pointsToday = account.pointsToday.toString();
-    const pointsTotal = account.pointsTotal.toString();
+    const pingStatus = account.pingStatus || 'Inactive';
 
-    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${pointsToday.padEnd(11)} | ${pointsTotal.padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride`);
+    console.log(colors[colorIndex] + "----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+    console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
   });
 
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  console.log(colors[colorIndex] + "----------------------------------------------------------------------------------------------------------------------------------------------------------------------" + '\x1b[0m');
+
+  // Update warna
+  colorIndex = (colorIndex + 1) % colors.length;
 }
+
+function startBlinkingColorMessage() {
+  setInterval(updateDisplay, 1000); // Ubah warna setiap 1 detik
+}
+
+// Sisa kode lainnya tetap sama...
 
 
 async function getUserId(account, index) {
