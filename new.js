@@ -15,8 +15,6 @@ let countdownInterval;
 let logInterval;
 let pingInterval;
 let startTime;
-let startCountdownAndPoints;
-let startLogUpdates;
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -46,7 +44,7 @@ async function connectWebSocket(userId, proxy, index) {
     await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
     console.log("WebSocket connected");
     startPinging();
-    startCountdownAndPoints();
+    startCountdownAndPointsUpdate();
     startLogUpdateInterval();
   };
 
@@ -159,7 +157,7 @@ function updateBlinkingColorMessage() {
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
-function startCountdownAndPoints() {
+function startCountdownAndPointsUpdate() {
   clearInterval(countdownInterval);
   updateCountdownAndPoints();
   countdownInterval = setInterval(() => {
