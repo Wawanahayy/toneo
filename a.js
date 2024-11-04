@@ -121,6 +121,11 @@ function startPing(socket, email) {
   pingIntervals.push(pingId);
 }
 
+function getRandomColor() {
+  currentColorIndex = (currentColorIndex + 1) % colors.length; // Loop through colors
+  return (text) => colors[currentColorIndex] + text + '\x1b[0m'; // Add reset code at the end
+}
+
 function updateDisplay() {
     const currentTime = formatDate(new Date());
     const elapsedTime = calculateElapsedTime();
