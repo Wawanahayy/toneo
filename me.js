@@ -140,19 +140,19 @@ function updateDisplay() {
     const pointsTotal = account.pointsTotal ?? 0; // Jika undefined, gunakan 0
 
     if (index % 2 === 0) {
-      leftColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(36)}`);
-      leftColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
+      leftColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(35)}`);
+      leftColumn.push(`DATE/JAM   : ${currentTime.padEnd(30)}`);
       leftColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
       leftColumn.push(`Total Poin : ${pointsTotal.toString().padEnd(30)}`);
       leftColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
       leftColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
       leftColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       leftColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
-      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(30)`);
-      leftColumn.push('--------------------------------------------------');
+      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(280)`);
+      leftColumn.push('--------------------------------------------------------------------------------');
     } else {
       rightColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(36)}`);
-      rightColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
+      rightColumn.push(`DATE/JAM   : ${currentTime.padEnd(30)}`);
       rightColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
       rightColumn.push(`Total Poin : ${pointsTotal.toString().padEnd(30)}`);
       rightColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
@@ -160,7 +160,7 @@ function updateDisplay() {
       rightColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       rightColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
       rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(28)`);
-      rightColumn.push('---------------------------------------------------');
+      rightColumn.push('---------------------------------------------------------------------------------');
     }
   });
 
