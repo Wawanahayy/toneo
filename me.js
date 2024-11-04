@@ -149,7 +149,7 @@ function updateDisplay() {
       leftColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
       leftColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       leftColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
-      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(44)); // Memperbaiki baris ini
+      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)); // Memperbaiki baris ini
       leftColumn.push('--------------------------------------------------------------------------------');
     } else {
       rightColumn.push('---------------------------------------------------------------------------------');
@@ -161,7 +161,7 @@ function updateDisplay() {
       rightColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
       rightColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       rightColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
-      rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(44)); // Memperbaiki baris ini
+      rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)); // Memperbaiki baris ini
       rightColumn.push('---------------------------------------------------------------------------------');
     }
   });
