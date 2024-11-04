@@ -140,6 +140,7 @@ function updateDisplay() {
     const pointsTotal = account.pointsTotal ?? 0; // Jika undefined, gunakan 0
 
     if (index % 2 === 0) {
+      leftColumn.push('--------------------------------------------------------------------------------');
       leftColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(35)}`);
       leftColumn.push(`DATE/JAM   : ${currentTime.padEnd(30)}`);
       leftColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
@@ -148,9 +149,10 @@ function updateDisplay() {
       leftColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
       leftColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       leftColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
-      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(280)`);
+      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(28));
       leftColumn.push('--------------------------------------------------------------------------------');
     } else {
+      rightColumn.push('---------------------------------------------------------------------------------');
       rightColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(36)}`);
       rightColumn.push(`DATE/JAM   : ${currentTime.padEnd(30)}`);
       rightColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
@@ -159,7 +161,7 @@ function updateDisplay() {
       rightColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
       rightColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       rightColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
-      rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(28)`);
+      rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(28));
       rightColumn.push('---------------------------------------------------------------------------------');
     }
   });
