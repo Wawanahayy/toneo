@@ -127,40 +127,27 @@ function updateDisplay() {
 
   console.clear();
 
-  // Create a string for left and right columns
-  let leftColumn = '';
-  let rightColumn = '';
+  // Siapkan tampilan untuk semua akun dalam format satu baris
+  let displayLines = accountsData.map((account, index) => {
+    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Terhubung' : 'Terputus';
+    const proxyStatus = account.proxy ? 'ya' : 'tidak';
+    const pingStatus = account.pingStatus || 'Tidak Aktif';
 
-  accountsData.forEach((account, index) => {
-    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
-    const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive';
-
-    leftColumn += `---------------------------------\n`;
-    leftColumn += `${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m\n`;
-    leftColumn += `${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m\n`;
-    leftColumn += `---------------------------------\n`;
-
-    // Prepare right column for additional information if needed
-    rightColumn += `\n` // You can add more information to the right column here
+    return `${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email} | ` +
+           `TANGGAL/JAM: ${currentTime} | ` +
+           `Poin HARIAN: ${account.pointsToday} | ` +
+           `Total Poin: ${account.pointsTotal} | ` +
+           `Proxy: ${proxyStatus} | ` +
+           `PING: ${pingStatus} | ` +
+           `WAKTU BERJALAN: ${elapsedTime} | ` +
+           `Websocket: ${websocketStatus} | ` +
+           `TELEGRAM: @AirdropJP_JawaPride\x1b[0m`;
   });
 
-  // Display both columns side by side
-  const maxHeight = Math.max(leftColumn.split('\n').length, rightColumn.split('\n').length);
-  const leftLines = leftColumn.split('\n');
-  const rightLines = rightColumn.split('\n');
-  for (let i = 0; i < maxHeight; i++) {
-    const leftLine = leftLines[i] || '';
-    const rightLine = rightLines[i] || '';
-    console.log(`${leftLine}\t\t${rightLine}`);
-  }
+  // Tampilkan semua baris
+  displayLines.forEach(line => {
+    console.log(line);
+  });
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
