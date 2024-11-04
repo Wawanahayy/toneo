@@ -191,26 +191,28 @@ async function main() {
 
   startTime = new Date();
 
-  for (const account of accounts) {
-    if (account.email && account.password) {
-      const userId = await getUserId(account, accountsData.length);
-      if (userId) {
-        accountsData.push({
-          email: account.email,
-          pointsTotal: 0,
-          pointsToday: 0,
-          proxy: account.proxy ? true : false,
-          pingStatus: 'Inactive',
-          userId // Store the userId
-        });
-        await connectWebSocket(userId, account.email, account.proxy);
-      } else {
-        console.error(`Failed to retrieve user ID for ${account.email}.`);
-      }
+for (const account of accounts) {
+  if (account.email && account.password) {
+    const userId = await getUserId(account, accountsData.length);
+    if (userId) {
+      // Hanya menambahkan akun jika userId valid
+      accountsData.push({
+        email: account.email,
+        pointsTotal: 0,
+        pointsToday: 0,
+        proxy: account.proxy ? true : false,
+        pingStatus: 'Inactive',
+        userId // Store the userId
+      });
+      await connectWebSocket(userId, account.email, account.proxy);
     } else {
-      console.error("Email and password must be provided for each account.");
+      console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
     }
+  } else {
+    console.error("Email and password must be provided for each account.");
   }
+}
+
 }
 
 // Clean up on exit
