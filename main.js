@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
-const HttpsProxyAgent = require('https-proxy-agent'); // Pastikan mengimpor HttpsProxyAgent
+const HttpsProxyAgent = require('https-proxy-agent'); // Pastikan mengimpor dengan benar
 
 let socket = null;
 let startTime; // Untuk menyimpan waktu mulai
