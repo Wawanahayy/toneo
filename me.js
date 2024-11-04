@@ -197,5 +197,24 @@ async function getUserId(account, index) {
       }
     } catch (error) {
       console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+      resolve(null);
+    }
+  });
+}
+
+async function main() {
+  const config = await getConfig();
+  accountsData = config.accounts || [];
+  startTime = new Date();
+
+  for (let index = 0; index < accountsData.length; index++) {
+    const account = accountsData[index];
+    const userId = await getUserId(account, index);
+    if (userId) {
+      account.userId = userId;
+      connectWebSocket(userId, account.email, account.proxy);
+    }
+  }
+}
 
 main();
