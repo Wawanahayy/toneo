@@ -1,68 +1,73 @@
 const WebSocket = require('ws');
 const { promisify } = require('util');
-const fs = require('fs');
-const readline = require('readline');
+const fs = require('fs').promises;
 const axios = require('axios');
+const readline = require('readline');
 
 let socket = null;
-let pingInterval;
-let countdownInterval;
-let logInterval;
-let potentialPoints = 0;
-let countdown = "Calculating...";
-let pointsTotal = 0;
-let pointsToday = 0;
 let startTime;
 
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+// Fungsi untuk mendapatkan user ID
+async function getUserId() {
+  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-// Fungsi untuk membaca akun dari file
-async function getAccounts() {
+  // Membaca data dari account.json
+  const accountData = JSON.parse(await fs.readFile('account.json', 'utf8'));
+  const email = accountData.email;
+  const password = accountData.password;
+
   try {
-    const data = await readFileAsync('accounts.json', 'utf8');
-    return JSON.parse(data);
+    const response = await axios.post(loginUrl, {
+      email,
+      password
+    }, {
+      headers: {
+        authorization,
+        apikey,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (response.data && response.data.user) {
+      console.log(`User ID: ${response.data.user.id}`);
+      return response.data.user.id;
+    } else {
+      console.error("User not found.");
+      return null;
+    }
   } catch (error) {
-    return [];
+    console.error("Error during login:", error.response ? error.response.data : error.message);
+    return null;
   }
 }
 
-// Fungsi untuk menambahkan akun ke file
-async function addAccount(email, password) {
-  const accounts = await getAccounts();
-  accounts.push({ email, password });
-  await writeFileAsync('accounts.json', JSON.stringify(accounts, null, 2));
-}
-
-// Fungsi untuk mendapatkan proxy dari file
+// Fungsi untuk membaca daftar proxy dari file proxies.json
 async function getProxies() {
   try {
-    const data = await readFileAsync('proxies.json', 'utf8');
-    return JSON.parse(data);
+    const data = await fs.readFile('proxies.json', 'utf8');
+    return JSON.parse(data); // Mengembalikan daftar proxy sebagai array
   } catch (error) {
-    return [];
+    console.error("Error reading proxies file:", error.message);
+    return []; // Mengembalikan array kosong jika ada kesalahan
   }
 }
 
-// Fungsi untuk menambahkan proxy ke file
-async function addProxy(proxy) {
-  const proxies = await getProxies();
-  proxies.push(proxy);
-  await writeFileAsync('proxies.json', JSON.stringify(proxies, null, 2));
-}
-
-// Fungsi untuk mendapatkan userId
-async function getUserId() {
-  return new Promise((resolve) => {
-    rl.question('Enter your user ID: ', (userId) => {
-      resolve(userId);
+// Fungsi untuk menampilkan daftar proxy
+async function displayProxies() {
+  const proxies = await getProxies(); // Membaca daftar proxy
+  if (proxies.length > 0) {
+    console.log("Daftar Proxy:");
+    proxies.forEach((proxy, index) => {
+      console.log(`${index + 1}: ${proxy.ip}:${proxy.port}`);
     });
-  });
+  } else {
+    console.log("Tidak ada proxy ditemukan.");
+  }
 }
 
 // Fungsi untuk menghubungkan ke WebSocket
@@ -98,35 +103,14 @@ async function connectWebSocket(userId) {
 
 // Fungsi utama
 async function main() {
-  rl.question('Do you want to add an account? (yes/no): ', async (answer) => {
-    if (answer.toLowerCase() === 'yes') {
-      rl.question('Email: ', (email) => {
-        rl.question('Password: ', async (password) => {
-          await addAccount(email, password);
-          console.log('Account added!');
-          rl.close();
-        });
-      });
-    } else {
-      rl.question('Do you want to add a proxy? (yes/no): ', async (answer) => {
-        if (answer.toLowerCase() === 'yes') {
-          rl.question('Proxy: ', async (proxy) => {
-            await addProxy(proxy);
-            console.log('Proxy added!');
-            rl.close();
-          });
-        } else {
-          const userId = await getUserId();
-          if (userId) {
-            await connectWebSocket(userId);
-          } else {
-            console.error("Failed to retrieve user ID.");
-            rl.close();
-          }
-        }
-      });
-    }
-  });
+  const userId = await getUserId();
+  if (userId) {
+    await connectWebSocket(userId);
+    await displayProxies(); // Menampilkan daftar proxy setelah terhubung
+  } else {
+    console.error("Failed to retrieve user ID.");
+  }
 }
 
+// Menjalankan fungsi utama
 main().catch(console.error);
