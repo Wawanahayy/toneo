@@ -3,14 +3,14 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m']; // Warna tambahan
 
 let sockets = [];
 let pingIntervals = [];
 let isFirstMessage = {};
-let currentColorIndex = 0;
+let colorIndex = 0; // Menggunakan index warna untuk kedip
 let lastPingTime;
-let pingInterval = 30000; // You can make this configurable
+let pingInterval = 30000; // Anda bisa membuat ini dapat diatur
 let accountsData = [];
 let startTime;
 
@@ -132,24 +132,26 @@ function updateDisplay() {
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
+    console.log(colors[colorIndex] + "----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+    console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
-    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${pointsToday.padEnd(11)} | ${pointsTotal.padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride`);
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
   });
 
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  console.log(colors[colorIndex] + "----------------------------------------------------------------------------------------------------------------------------------------------------------------------" + '\x1b[0m');
+
+  // Update warna untuk tampilan berkedip
+  colorIndex = (colorIndex + 1) % colors.length;
 }
 
-
-  currentColorIndex = (currentColorIndex + 1) % colors.length;
-}
-
+// Fungsi untuk memulai tampilan berkedip
 function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 1000);
+  setInterval(updateDisplay, 1000); // Ubah warna setiap 1 detik
 }
+
+// Memulai efek berkedip
+startBlinkingColorMessage();
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
