@@ -238,10 +238,7 @@ async function updateCountdownAndPoints() {
 
 async function getUserId() {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const accounts = await readAccounts();
-  const proxies = await readProxies();
 
   if (accounts.length === 0) {
     console.error("No accounts found in akun.json.");
@@ -249,20 +246,38 @@ async function getUserId() {
   }
 
   const account = accounts[0]; // Ambil akun pertama
-  const proxy = proxies.length > 0 ? proxies[0] : null; // Ambil proxy pertama jika ada
+
+  // Tambahkan authorization dan apikey
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   return new Promise((resolve, reject) => {
     const axiosConfig = {
       method: 'post',
       url: loginUrl,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': authorization, // Menambahkan Authorization header
+        'apikey': apikey // Menambahkan apikey header
       },
       data: JSON.stringify({
         email: account.email,
         password: account.password,
       }),
     };
+
+    axios(axiosConfig)
+      .then(response => {
+        console.log("Login successful:", response.data);
+        resolve(response.data.user.id); // Mengembalikan user ID
+      })
+      .catch(error => {
+        console.error("Login failed:", error.response ? error.response.data : error.message);
+        reject(error);
+      });
+  });
+}
+
 
     if (proxy) {
       axiosConfig.proxy = {
