@@ -122,70 +122,51 @@ function startPing(socket, email) {
 }
 
 function updateDisplay() {
-    const currentTime = formatDate(new Date());
-    const elapsedTime = calculateElapsedTime();
+  const currentTime = formatDate(new Date());
+  const elapsedTime = calculateElapsedTime();
 
-    console.clear();
+  console.clear();
 
-    let leftColumn = [];
-    let rightColumn = [];
+  let leftColumn = [];
+  let rightColumn = [];
 
-    accountsData.forEach((account, index) => {
-        const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
-        const proxyStatus = account.proxy ? 'true' : 'false';
-        const pingStatus = account.pingStatus || 'Inactive';
+  accountsData.forEach((account, index) => {
+    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+    const proxyStatus = account.proxy ? 'true' : 'false';
+    const pingStatus = account.pingStatus || 'Inactive';
 
-        // Menggunakan nilai default jika properti tidak ada
-        const pointsToday = account.pointsToday ?? 0;
-        const pointsTotal = account.pointsTotal ?? 0;
+    const pointsToday = account.pointsToday ?? 0; // Jika undefined, gunakan 0
+    const pointsTotal = account.pointsTotal ?? 0; // Jika undefined, gunakan 0
 
-        // Format untuk satu akun
-        const accountInfo = `
-AKUN ${index + 1}: ${account.email}
-DATE/JAM  : ${currentTime}
-Poin DAILY: ${pointsToday}
-Total Poin: ${pointsTotal}
-Proxy     : ${proxyStatus}
-PING      : ${pingStatus}
-TIME RUN  : ${elapsedTime}
-Websocket : ${websocketStatus}
-TELEGRAM  : @AirdropJP_JawaPride
----------------------------------`;
+    const accountInfo = [
+      `AKUN ${index + 1}: ${account.email.padEnd(35)}`,
+      `DATE/JAM   : ${currentTime.padEnd(30)}`,
+      `Poin DAILY : ${pointsToday.toString().padEnd(30)}`,
+      `Total Poin : ${pointsTotal.toString().padEnd(30)}`,
+      `Proxy      : ${proxyStatus.padEnd(30)}`,
+      `PING       : ${pingStatus.padEnd(30)}`,
+      `TIME RUN   : ${elapsedTime.padEnd(30)}`,
+      `Websocket  : ${websocketStatus.padEnd(30)}`,
+      `TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)
+    ].join('\n');
 
-        // Mengisi kolom kiri dan kanan secara bergantian
-        if (index % 2 === 0) {
-            leftColumn.push(accountInfo.trim());
-        } else {
-            rightColumn.push(accountInfo.trim());
-        }
-    });
-
-    // Menampilkan kolom kiri dan kanan
-    const maxLength = Math.max(leftColumn.length, rightColumn.length);
-    for (let i = 0; i < maxLength; i++) {
-        const leftLine = leftColumn[i] ? leftColumn[i] : '';
-        const rightLine = rightColumn[i] ? rightColumn[i] : '';
-        const combinedLine = `${leftLine}${' '.repeat(5)}| ${rightLine}`;
-        console.log(combinedLine);
+    if (index % 2 === 0) {
+      leftColumn.push(accountInfo);
+      leftColumn.push('--------------------------------------------------------------------------------');
+    } else {
+      rightColumn.push(accountInfo);
+      rightColumn.push('---------------------------------------------------------------------------------');
     }
+  });
+
+  for (let i = 0; i < Math.max(leftColumn.length, rightColumn.length); i++) {
+    const leftLine = leftColumn[i] || '';
+    const rightLine = rightColumn[i] || '';
+    console.log(`${leftLine} | ${rightLine}`);
+  }
+
+  currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
-
-// Fungsi formatDate dan calculateElapsedTime harus didefinisikan sebelumnya
-function formatDate(date) {
-    return date.toTimeString().split(' ')[0]; // Format: HH:MM:SS
-}
-
-function calculateElapsedTime() {
-    // Logika untuk menghitung waktu yang telah berlalu
-    return '00:18'; // Contoh nilai waktu yang berlalu
-}
-
-const accountsData = [
-    { email: 'malikaaee12@gmail.com', proxy: true, pointsToday: 0, pointsTotal: 3025, pingStatus: 'Active', socket: { readyState: WebSocket.OPEN } },
-    { email: 'wawanpere2@gmail.com', proxy: true, pointsToday: 2500, pointsTotal: 2500, pingStatus: 'Active', socket: { readyState: WebSocket.OPEN } },
-    { email: 'perewawan@gmail.com', proxy: true, pointsToday: 2500, pointsTotal: 2500, pingStatus: 'Active', socket: { readyState: WebSocket.OPEN } },
-    { email: 'wawanpere1@gmail.com', proxy: true, pointsToday: 25
-
 
 
 async function getUserId(account, index) {
