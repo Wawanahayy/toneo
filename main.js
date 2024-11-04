@@ -78,6 +78,8 @@ async function getUserId(account, index) {
 
       if (response.data && response.data.user) {
         console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
+        // Tambahkan logging di sini
+        fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
         resolve(response.data.user.id);
       } else {
         console.error(`User not found for account ${index + 1}.`);
@@ -89,6 +91,7 @@ async function getUserId(account, index) {
     }
   });
 }
+
 
 async function main() {
   const accounts = await readJSONFile('akun.json');
