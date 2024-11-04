@@ -131,7 +131,7 @@ function updateDisplay() {
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
   
   // Menampilkan header tabel dengan warna berkedip
-  console.log(colors[colorIndex] + " ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: " + '\x1b[0m');
+  console.log(colors[colorIndex] + " ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  JOIN MY CHANNEL TG: " + '\x1b[0m');
 
   // Menampilkan garis pemisah di bawah header
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
