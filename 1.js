@@ -8,6 +8,9 @@ const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
 let sockets = [];
 let pingIntervals = [];
 let isFirstMessage = {}; // Objek untuk melacak pesan pertama per akun
+let accountsData = []; // Declare accountsData globally
+let lastPingTime;
+const pingInterval = 5000; // Example ping interval in milliseconds
 
 function formatDate(date) {
   return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -135,8 +138,8 @@ function startBlinkingColorMessage() {
 
 async function getUserId(email, password) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const authorization = "Bearer your_auth_token"; // replace with your actual token
+  const apikey = "your_api_key"; // replace with your actual API key
 
   console.log(`Attempting to log in with email: ${email}`);
 
