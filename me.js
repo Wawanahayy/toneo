@@ -127,7 +127,6 @@ function updateDisplay() {
 
   console.clear();
 
-  // Membuat array untuk menampung baris kiri dan kanan
   let leftColumn = [];
   let rightColumn = [];
 
@@ -136,33 +135,37 @@ function updateDisplay() {
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    // Mengisi kolom kiri dan kanan
+    // Menggunakan nilai default jika properti tidak ada
+    const pointsToday = account.pointsToday ?? 0; // Jika undefined, gunakan 0
+    const pointsTotal = account.pointsTotal ?? 0; // Jika undefined, gunakan 0
+
     if (index % 2 === 0) {
+      leftColumn.push('--------------------------------------------------');
       leftColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(30)}`);
       leftColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
-      leftColumn.push(`Poin DAILY : ${account.pointsToday.toString().padEnd(30)}`);
-      leftColumn.push(`Total Poin : ${account.pointsTotal.toString().padEnd(30)}`);
+      leftColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
+      leftColumn.push(`Total Poin : ${pointsTotal.toString().padEnd(30)}`);
       leftColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
       leftColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
       leftColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       leftColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
       leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(30)`);
-      leftColumn.push('---------------------------------------------------');
+      leftColumn.push('--------------------------------------------------');
     } else {
+      leftColumn.push('--------------------------------------------------');
       rightColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(30)}`);
       rightColumn.push(`DATE/JAM  : ${currentTime.padEnd(30)}`);
-      rightColumn.push(`Poin DAILY : ${account.pointsToday.toString().padEnd(30)}`);
-      rightColumn.push(`Total Poin : ${account.pointsTotal.toString().padEnd(30)}`);
+      rightColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
+      rightColumn.push(`Total Poin : ${pointsTotal.toString().padEnd(30)}`);
       rightColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
       rightColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
       rightColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
       rightColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
       rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride.padEnd(30)`);
-      rightColumn.push('-------------------------------------------------');
+      rightColumn.push('---------------------------------------------------');
     }
   });
 
-  // Menampilkan informasi dalam dua kolom
   for (let i = 0; i < Math.max(leftColumn.length, rightColumn.length); i++) {
     const leftLine = leftColumn[i] || '';
     const rightLine = rightColumn[i] || '';
@@ -171,6 +174,7 @@ function updateDisplay() {
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
+
 
 
 function startBlinkingColorMessage() {
