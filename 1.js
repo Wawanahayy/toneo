@@ -127,16 +127,19 @@ function updateDisplay() {
 
   console.clear();
 
+  // Menampilkan header tabel dengan baris pemisah di atas dan bawah
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  console.log("ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------"); // Baris pemisah tambahan
+
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-    console.log(colors[colorIndex] + "     ACCOUNT     |    EMAIL         | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
-    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
-    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
+    // Mencetak setiap baris akun
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride`);
   });
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
@@ -147,8 +150,9 @@ function updateDisplay() {
 
 // Fungsi untuk memulai tampilan berkedip
 function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 3000); // Ubah warna setiap 1 detik
+  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
 }
+
 
 // Memulai efek berkedip
 startBlinkingColorMessage();
