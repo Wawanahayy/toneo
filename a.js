@@ -4,7 +4,7 @@ const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
-const reset = '\x1b[0m';
+const colorReset = '\x1b[0m'; 
 
 
 let sockets = [];
@@ -133,8 +133,6 @@ const reset = '\x1b[0m';
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m']; // Contoh warna
 let currentColorIndex = 0;
 
-// Fungsi lainnya...
-
 function updateDisplay() {
   const currentTime = formatDate(new Date());
   const elapsedTime = calculateElapsedTime();
@@ -152,20 +150,20 @@ function updateDisplay() {
     const pointsToday = account.pointsToday ?? 0;
     const pointsTotal = account.pointsTotal ?? 0;
 
-    const color = colors[currentColorIndex]; // Mengambil warna saat ini
+    const color = colorList[currentColorIndex]; // Mengambil warna saat ini
 
     const displayAccount = (column, idx) => {
-      column.push(`${color}--------------------------------------------------------------------------------${reset}`);
-      column.push(`${color}AKUN ${idx + 1}: ${account.email.padEnd(35)}${reset}`);
-      column.push(`${color}DATE/JAM   : ${currentTime.padEnd(30)}${reset}`);
-      column.push(`${color}Poin DAILY : ${pointsToday.toString().padEnd(30)}${reset}`);
-      column.push(`${color}Total Poin : ${pointsTotal.toString().padEnd(30)}${reset}`);
-      column.push(`${color}Proxy      : ${proxyStatus.padEnd(30)}${reset}`);
-      column.push(`${color}PING       : ${pingStatus.padEnd(30)}${reset}`);
-      column.push(`${color}TIME RUN   : ${elapsedTime.padEnd(30)}${reset}`);
-      column.push(`${color}Websocket  : ${websocketStatus.padEnd(30)}${reset}`);
-      column.push(`${color}TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43) + `${reset}`);
-      column.push(`${color}--------------------------------------------------------------------------------${reset}`);
+      column.push(`${color}--------------------------------------------------------------------------------${colorReset}`);
+      column.push(`${color}AKUN ${idx + 1}: ${account.email.padEnd(35)}${colorReset}`);
+      column.push(`${color}DATE/JAM   : ${currentTime.padEnd(30)}${colorReset}`);
+      column.push(`${color}Poin DAILY : ${pointsToday.toString().padEnd(30)}${colorReset}`);
+      column.push(`${color}Total Poin : ${pointsTotal.toString().padEnd(30)}${colorReset}`);
+      column.push(`${color}Proxy      : ${proxyStatus.padEnd(30)}${colorReset}`);
+      column.push(`${color}PING       : ${pingStatus.padEnd(30)}${colorReset}`);
+      column.push(`${color}TIME RUN   : ${elapsedTime.padEnd(30)}${colorReset}`);
+      column.push(`${color}Websocket  : ${websocketStatus.padEnd(30)}${colorReset}`);
+      column.push(`${color}TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43) + `${colorReset}`);
+      column.push(`${color}--------------------------------------------------------------------------------${colorReset}`);
     };
 
     if (index % 2 === 0) {
@@ -181,10 +179,9 @@ function updateDisplay() {
     console.log(`${leftLine} | ${rightLine}`);
   }
 
-  currentColorIndex = (currentColorIndex + 1) % colors.length;
+  currentColorIndex = (currentColorIndex + 1) % colorList.length;
 }
 
-// Fungsi lainnya...
 
 
 
