@@ -15,6 +15,7 @@ let countdownInterval;
 let logInterval;
 let pingInterval;
 let startTime;
+let accountsData = []; // Definisikan accountsData di sini
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -26,6 +27,11 @@ async function readJSONFile(filePath) {
     console.error(`Error reading file ${filePath}:`, error);
     return null;
   }
+}
+
+// Fungsi untuk mengambil konfigurasi dari file
+async function getConfig() {
+  return await readJSONFile('config.json'); // Ubah path sesuai kebutuhan
 }
 
 async function connectWebSocket(userId, proxy, index) {
@@ -209,58 +215,31 @@ async function getUserId(email, password) {
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
   const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  console.log(`Attempting to log in with email: ${email}`);
-
-  try {
-    const response = await axios.post(loginUrl, {
-      email,
-      password
-    }, {
-      headers: {
-        authorization,
-        apikey,
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (response.data && response.data.user) {
-      console.log(`User ID: ${response.data.user.id}`);
-      return response.data.user.id;
-    } else {
-      console.error("User not found.");
-      return null;
+  const response = await axios.post(loginUrl, { email, password }, {
+    headers: {
+      'Authorization': authorization,
+      'apikey': apikey
     }
-  } catch (error) {
-    console.error("Error during login:", error.response ? error.response.data : error.message);
-    return null;
+  });
+
+  if (response.data && response.data.access_token) {
+    return response.data.user.id; // Mengembalikan userId
+  } else {
+    throw new Error('User ID not found in response');
   }
 }
 
-async function main() {
+// Memanggil fungsi getConfig() dan menggunakan data yang dikembalikan
+(async () => {
   const config = await getConfig();
-  const accounts = config.accounts;
-
-  startTime = new Date();
-
-  for (const account of accounts) {
-    if (account.email && account.password) {
+  if (config && config.accounts) {
+    accountsData = config.accounts; // Mengisi accountsData dengan data dari file config
+    for (const account of accountsData) {
       const userId = await getUserId(account.email, account.password);
-      if (userId) {
-        accountsData.push({
-          email: account.email,
-          pointsTotal: 0,
-          pointsToday: 0,
-          proxy: account.proxy ? true : false,
-          pingStatus: 'Inactive'
-        });
-        await connectWebSocket(userId, account.email, account.proxy);
-      } else {
-        console.error(`Failed to retrieve user ID for ${account.email}.`);
-      }
-    } else {
-      console.error("Email and password must be provided for each account.");
+      const proxy = account.proxy;
+      connectWebSocket(userId, proxy);
     }
+  } else {
+    console.error('No accounts found in config.');
   }
-}
-
-main().catch(console.error);
+})();
