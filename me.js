@@ -182,7 +182,7 @@ function startBlinkingColorMessage() {
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
@@ -191,24 +191,27 @@ async function getUserId(account, index) {
     try {
       const response = await axios.post(loginUrl, { email, password }, {
         headers: {
-          Authorization: authorization,
-          apikey: apikey
+          authorization,
+          apikey,
+          "Content-Type": "application/json"
         }
       });
 
-      if (response.data) {
-        console.log(`User ID for ${email}:`, response.data.user.id);
-        resolve({ userId: response.data.user.id, email });
+      if (response.data && response.data.user) {
+        console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
+        fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
+        resolve(response.data.user.id);
       } else {
-        console.error(`Failed to fetch userId for ${email}`);
+        console.error(`User not found for account ${index + 1}.`);
         resolve(null);
       }
     } catch (error) {
-      console.error(`Error fetching userId for ${email}:`, error);
+      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
       resolve(null);
     }
   });
 }
+
 
 async function init() {
   startTime = new Date();
