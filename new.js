@@ -43,17 +43,24 @@ async function connectWebSocket(userId, proxy, account, accountIndex) {
     const elapsedTime = '0'; // Hitung waktu yang telah berlalu jika diperlukan
     const websocketStatus = 'Terhubung';
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log(`Received message for account ${accountIndex + 1}:`, data);
-      
-      // Update the display values for points
-      account.pointsToday = data.pointsToday; // Update the account object
-      account.pointsTotal = data.pointsTotal; // Update the account object
-      
-      // Re-display the account status with updated points
-      displayAccountStatus(account, accountIndex, proxy); // Pass proxy status here
-    };
+    // Menampilkan log
+    const currentColorIndex = accountIndex % colors.length; // Untuk mengganti warna
+    console.log(`---------------------------------`);
+    console.log(`${colors[currentColorIndex]}AKUN ${accountIndex + 1}: ${account.email}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`); 
+    console.log(`---------------------------------`);
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log(`Received message for account ${accountIndex + 1}:`, data);
   };
 
   socket.onclose = () => {
@@ -64,21 +71,6 @@ async function connectWebSocket(userId, proxy, account, accountIndex) {
   socket.onerror = (error) => {
     console.error(`WebSocket error for account ${accountIndex + 1}:`, error);
   };
-}
-
-function displayAccountStatus(account, accountIndex, proxy) { // Add proxy parameter here
-  const currentColorIndex = accountIndex % colors.length;
-  console.log(`---------------------------------`);
-  console.log(`${colors[currentColorIndex]}AKUN ${accountIndex + 1}: ${account.email}\x1b[0m`);
-  console.log(`${colors[currentColorIndex]}DATE/JAM  : ${new Date().toLocaleString()}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday || 'Tidak Ada'}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal || 'Tidak Ada'}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Proxy     : ${proxy ? 'Aktif' : 'Tidak Aktif'}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}PING      : Aktif\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}TIME RUN  : 0\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}Websocket : Terhubung\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`); 
-  console.log(`---------------------------------`);
 }
 
 function startPing(socket, accountIndex) {
@@ -103,7 +95,7 @@ function removeSocket(socket) {
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
