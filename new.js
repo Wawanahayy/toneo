@@ -17,8 +17,9 @@ const colors = [
 
 let startTime;
 let lastPingTime;
-let pingInterval = 5000;
+let pingInterval = 5000; 
 
+// Fungsi format dan kalkulasi waktu
 function formatDate(date) {
   return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
 }
@@ -34,23 +35,13 @@ function calculateElapsedTime() {
   return formatElapsedTime(new Date() - startTime);
 }
 
-async function getConfig() {
+// Membaca akun dan proxy
+async function readJsonFile(filePath) {
   try {
-    const accountsData = await promisify(fs.readFile)('akun.json', 'utf8');
-    const proxyData = await promisify(fs.readFile)('proxy.json', 'utf8');
-    
-    const accounts = JSON.parse(accountsData).accounts;
-    const proxies = JSON.parse(proxyData).proxies;
-
-    // Menggabungkan akun dengan proxy jika ada
-    return accounts.map((account, index) => {
-      return {
-        ...account,
-        proxy: proxies[index] || null // Jika tidak ada proxy, isi dengan null
-      };
-    });
+    const data = await promisify(fs.readFile)(filePath, 'utf8');
+    return JSON.parse(data);
   } catch (error) {
-    console.error("Error reading config files:", error);
+    console.error(`Error reading ${filePath}:`, error);
     return [];
   }
 }
@@ -61,6 +52,7 @@ async function connectWebSocket(userId, email, proxy) {
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   let agent;
   
+  // Gunakan proxy jika ada
   if (proxy) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
     agent = new HttpsProxyAgent(proxyUrl);
@@ -75,14 +67,13 @@ async function connectWebSocket(userId, email, proxy) {
       account.socket = socket;
       account.pingStatus = 'Active';
     }
-    startPing(socket, email);
+    startPing(socket, email); 
     startBlinkingColorMessage();
     updateDisplay();
   };
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-
     if (data.type === "pong") {
       const pingTime = Date.now() - lastPingTime;
       console.log(`Ping untuk user ${email}: ${pingTime} ms`);
@@ -115,10 +106,10 @@ function startPing(socket, email) {
   setInterval(() => {
     if (socket.readyState === WebSocket.OPEN) {
       lastPingTime = Date.now();
-      socket.send(JSON.stringify({ type: "ping" }));
+      socket.send(JSON.stringify({ type: "ping" })); 
       const account = accountsData.find(account => account.email === email);
       if (account) {
-        account.pingStatus = 'Active';
+        account.pingStatus = 'Active'; 
       }
     }
   }, pingInterval);
@@ -133,18 +124,18 @@ function updateDisplay() {
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive';
+    const pingStatus = account.pingStatus || 'Inactive'; 
 
     console.log(`------------------------------------`);
-    console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${account.pointsToday}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`);
+    console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${account.pointsToday}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
     console.log(`------------------------------------`);
   });
 
@@ -188,29 +179,22 @@ async function getUserId(email, password) {
 }
 
 async function main() {
-  const accounts = await getConfig();
+  const accounts = await readJsonFile('akun.json');
+  const proxies = await readJsonFile('proxy.json');
 
   startTime = new Date();
 
-  for (const account of accounts) {
-    if (account.email && account.password) {
-      const userId = await getUserId(account.email, account.password);
-      if (userId) {
-        accountsData.push({
-          email: account.email,
-          pointsTotal: 0,
-          pointsToday: 0,
-          proxy: account.proxy ? true : false,
-          pingStatus: 'Inactive'
-        });
-        await connectWebSocket(userId, account.email, account.proxy);
-      } else {
-        console.error(`Failed to retrieve user ID for ${account.email}.`);
-      }
-    } else {
-      console.error("Email and password must be provided for each account.");
+  for (let i = 0; i < accounts.length; i++) {
+    const account = accounts[i];
+    const proxy = proxies[i]; // Menggunakan proxy yang sama dengan indeks akun
+
+    const userId = await getUserId(account.email, account.password);
+
+    if (userId) {
+      accountsData.push({ ...account, proxy, userId });
+      connectWebSocket(userId, account.email, proxy);
     }
   }
 }
 
-main().catch(console.error);
+main();
