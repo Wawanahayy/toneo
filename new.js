@@ -47,7 +47,7 @@ async function connectWebSocket(userId, proxy, index) {
     console.log("WebSocket connected");
     startPinging();
     startCountdownAndPoints();
-    startLogUpdates();
+    startLogUpdateInterval();
   };
 
   socket.onmessage = async (event) => {
@@ -108,7 +108,7 @@ function stopPinging() {
   }
 }
 
-function startLogUpdates() {
+function startLogUpdateInterval() {
   stopLogUpdates();
   logInterval = setInterval(async () => {
     const localStorageData = await getLocalStorage();
@@ -209,7 +209,7 @@ async function updateCountdownAndPoints() {
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
@@ -223,10 +223,8 @@ async function getUserId(account, index) {
           "Content-Type": "application/json"
         }
       });
-
-      if (response.data && response.data.user) {
-        console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
-        fs.appendFileSync('successful_accounts.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`);
+      if (response.data.user) {
+        await Sync('successful_accounts.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`);
         resolve(response.data.user.id);
       } else {
         console.log(`Failed to get User ID for account ${index + 1}`);
