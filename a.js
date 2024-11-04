@@ -126,6 +126,13 @@ function getRandomColor() {
   return (text) => colors[currentColorIndex] + text + '\x1b[0m'; // Add reset code at the end
 }
 
+// Definisikan reset warna di sini
+const reset = '\x1b[0m';
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m']; // Contoh warna
+let currentColorIndex = 0;
+
+// Fungsi lainnya...
+
 function updateDisplay() {
   const currentTime = formatDate(new Date());
   const elapsedTime = calculateElapsedTime();
@@ -155,7 +162,7 @@ function updateDisplay() {
       column.push(`${color}PING       : ${pingStatus.padEnd(30)}${reset}`);
       column.push(`${color}TIME RUN   : ${elapsedTime.padEnd(30)}${reset}`);
       column.push(`${color}Websocket  : ${websocketStatus.padEnd(30)}${reset}`);
-      column.push(`${color}TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43) + `${reset}`); // Memperbaiki baris ini
+      column.push(`${color}TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43) + `${reset}`);
       column.push(`${color}--------------------------------------------------------------------------------${reset}`);
     };
 
@@ -174,6 +181,9 @@ function updateDisplay() {
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
+
+// Fungsi lainnya...
+
 
 
 function startBlinkingColorMessage() {
