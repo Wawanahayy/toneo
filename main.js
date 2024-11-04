@@ -22,6 +22,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
+// Fungsi untuk mendapatkan data dari localStorage.json
 async function getLocalStorage() {
   try {
     const data = await readFileAsync('localStorage.json', 'utf8');
@@ -31,12 +32,14 @@ async function getLocalStorage() {
   }
 }
 
+// Fungsi untuk menyimpan data ke localStorage.json
 async function setLocalStorage(data) {
   const currentData = await getLocalStorage();
   const newData = { ...currentData, ...data };
   await writeFileAsync('localStorage.json', JSON.stringify(newData));
 }
 
+// Fungsi untuk membaca akun dari akun.json
 async function readAccounts() {
   try {
     const data = await readFileAsync('akun.json', 'utf8');
@@ -47,6 +50,7 @@ async function readAccounts() {
   }
 }
 
+// Fungsi untuk membaca proxy dari proxy.json
 async function readProxies() {
   try {
     const data = await readFileAsync('proxy.json', 'utf8');
@@ -57,6 +61,7 @@ async function readProxies() {
   }
 }
 
+// Fungsi untuk menghubungkan WebSocket
 async function connectWebSocket(userId) {
   if (socket) return;
   const version = "v0.2";
@@ -236,9 +241,11 @@ async function updateCountdownAndPoints() {
   await setLocalStorage({ potentialPoints, countdown });
 }
 
+// Fungsi untuk mendapatkan userId
 async function getUserId() {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const accounts = await readAccounts();
+  const proxies = await readProxies(); // Membaca proxy dari proxy.json
 
   if (accounts.length === 0) {
     console.error("No accounts found in akun.json.");
@@ -248,69 +255,63 @@ async function getUserId() {
   const account = accounts[0]; // Ambil akun pertama
 
   // Tambahkan authorization dan apikey
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYW5ib2F0YWxvZHNraGVvYyIsImlhdCI6MTY5ODg0NzA5MCwiZXhwIjoxNzAwNjY5MDkwfQ.niN66SM7WqG1MF8sY94PbTGxWLF5gCE9FrO--e9OXSU";
+  const apikey = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYW5ib2F0YWxvYHN0aGFobGVtYWxsZXMiLCJpYXQiOjE2OTg4NDcwOTAsImV4cCI6MTcwMDY2OTA5MH0.k4iF5AhMNt0gdEO3XEz7_GTPccQbd9Zr7b-CQJtMZ9E";
 
-  return new Promise((resolve, reject) => {
-    const axiosConfig = {
-      method: 'post',
-      url: loginUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authorization, // Menambahkan Authorization header
-        'apikey': apikey // Menambahkan apikey header
-      },
-      data: JSON.stringify({
-        email: account.email,
-        password: account.password,
-      }),
+  // Menggunakan proxy jika ada
+  const proxy = proxies.length > 0 ? proxies[0] : null;
+  const axiosOptions = {
+    headers: {
+      Authorization: authorization,
+      apikey: apikey,
+      'Content-Type': 'application/json'
+    }
+  };
+
+  // Menambahkan pengaturan proxy jika ada
+  if (proxy) {
+    axiosOptions.proxy = {
+      host: proxy.host,
+      port: proxy.port
     };
-
-    axios(axiosConfig)
-      .then(response => {
-        console.log("Login successful:", response.data);
-        resolve(response.data.user.id); // Mengembalikan user ID
-      })
-      .catch(error => {
-        console.error("Login failed:", error.response ? error.response.data : error.message);
-        reject(error);
-      });
-  });
-}
-
-
-    if (proxy) {
-      axiosConfig.proxy = {
-        host: proxy.host,
-        port: proxy.port,
-        auth: proxy.username && proxy.password ? {
-          username: proxy.username,
-          password: proxy.password,
-        } : null, // Hanya set jika username dan password ada
-      };
-    }
-
-    axios(axiosConfig)
-      .then(response => {
-        console.log("Login successful:", response.data);
-        resolve(response.data.user.id); // Mengembalikan user ID
-      })
-      .catch(error => {
-        console.error("Login failed:", error.response ? error.response.data : error.message);
-        reject(error);
-      });
-  });
-}
-
-async function start() {
-  try {
-    const userId = await getUserId();
-    if (userId) {
-      await connectWebSocket(userId);
-    }
-  } catch (error) {
-    console.error("Failed to start:", error);
   }
+
+  try {
+    const response = await axios.post(loginUrl, {
+      email: account.email,
+      password: account.password
+    }, axiosOptions);
+
+    const userId = response.data.user.id;
+    console.log("User ID obtained:", userId);
+    return userId;
+  } catch (error) {
+    console.error("Error during login:", error.response ? error.response.data : error.message);
+    return null;
+  }
+}
+
+// Fungsi untuk memulai program
+async function start() {
+  const userId = await getUserId();
+  if (userId) {
+    await connectWebSocket(userId);
+  }
+}
+
+// Fungsi formatDate
+function formatDate(date) {
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'UTC'
+  };
+  return date.toLocaleString('en-US', options).replace(/\/|,/g, '-').replace(/ /g, 'T');
 }
 
 start();
