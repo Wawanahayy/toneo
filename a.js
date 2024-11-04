@@ -124,7 +124,7 @@ function updateDisplay() {
   console.clear();
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING: | TIME RUN: | Websocket: | TELEGRAM: ");
+  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING: | TIME RUN:     | Websocket:   | TELEGRAM: ");
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   accountsData.forEach((account, index) => {
@@ -134,7 +134,7 @@ function updateDisplay() {
     const pointsToday = account.pointsToday.toString();
     const pointsTotal = account.pointsTotal.toString();
 
-    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(10)} | ${pointsToday.padEnd(10)} | ${pointsTotal.padEnd(10)} | ${proxyStatus.padEnd(10)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(10)} | ${websocketStatus.padEnd(10)} | @AirdropJP_JawaPride`);
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(10)} | ${pointsToday.padEnd(11)} | ${pointsTotal.padEnd(12)} | ${proxyStatus.padEnd(11)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(10)} | ${websocketStatus.padEnd(10)} | @AirdropJP_JawaPride`);
   });
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
