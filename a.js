@@ -127,46 +127,50 @@ function updateDisplay() {
 
   console.clear();
 
-  let leftColumn = [];
-  let rightColumn = [];
+  // Menginisialisasi string untuk menampung setiap baris informasi
+  let accountsInfo = '';
+  let dateInfo = '';
+  let pointsTodayInfo = '';
+  let totalPointsInfo = '';
+  let proxyInfo = '';
+  let pingInfo = '';
+  let timeRunInfo = '';
+  let websocketInfo = '';
+  let telegramInfo = '';
 
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    const pointsToday = account.pointsToday ?? 0; // Jika undefined, gunakan 0
-    const pointsTotal = account.pointsTotal ?? 0; // Jika undefined, gunakan 0
-
-    const accountInfo = [
-      `AKUN ${index + 1}: ${account.email.padEnd(35)}`,
-      `DATE/JAM   : ${currentTime.padEnd(30)}`,
-      `Poin DAILY : ${pointsToday.toString().padEnd(30)}`,
-      `Total Poin : ${pointsTotal.toString().padEnd(30)}`,
-      `Proxy      : ${proxyStatus.padEnd(30)}`,
-      `PING       : ${pingStatus.padEnd(30)}`,
-      `TIME RUN   : ${elapsedTime.padEnd(30)}`,
-      `Websocket  : ${websocketStatus.padEnd(30)}`,
-      `TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)
-    ].join('\n');
-
-    if (index % 2 === 0) {
-      leftColumn.push(accountInfo);
-      leftColumn.push('--------------------------------------------------------------------------------');
-    } else {
-      rightColumn.push(accountInfo);
-      rightColumn.push('---------------------------------------------------------------------------------');
-    }
+    // Menambahkan informasi setiap akun ke dalam string
+    accountsInfo += `${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email.padEnd(30)} | `;
+    dateInfo += `${colors[currentColorIndex]}DATE/JAM: ${currentTime.padEnd(30)} | `;
+    pointsTodayInfo += `${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday.toString().padEnd(30)} | `;
+    totalPointsInfo += `${colors[currentColorIndex]}Total Poin: ${account.pointsTotal.toString().padEnd(30)} | `;
+    proxyInfo += `${colors[currentColorIndex]}Proxy: ${proxyStatus.padEnd(30)} | `;
+    pingInfo += `${colors[currentColorIndex]}PING: ${pingStatus.padEnd(30)} | `;
+    timeRunInfo += `${colors[currentColorIndex]}TIME RUN: ${elapsedTime.padEnd(30)} | `;
+    websocketInfo += `${colors[currentColorIndex]}Websocket: ${websocketStatus.padEnd(30)} | `;
+    telegramInfo += `${colors[currentColorIndex]}TELEGRAM: @AirdropJP_JawaPride`.padEnd(30) + ' | ';
   });
 
-  for (let i = 0; i < Math.max(leftColumn.length, rightColumn.length); i++) {
-    const leftLine = leftColumn[i] || '';
-    const rightLine = rightColumn[i] || '';
-    console.log(`${leftLine} | ${rightLine}`);
-  }
+  // Menampilkan semua informasi dalam format tabel
+  console.log('-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------');
+  console.log(accountsInfo);
+  console.log(dateInfo);
+  console.log(pointsTodayInfo);
+  console.log(totalPointsInfo);
+  console.log(proxyInfo);
+  console.log(pingInfo);
+  console.log(timeRunInfo);
+  console.log(websocketInfo);
+  console.log(telegramInfo);
+  console.log('-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------');
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
+
 
 function startBlinkingColorMessage() {
   setInterval(updateDisplay, 1000);
