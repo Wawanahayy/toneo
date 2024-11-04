@@ -139,7 +139,7 @@ function updateDisplay() {
     console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
   });
 
-  console.log(colors[colorIndex] + "----------------------------------------------------------------------------------------------------------------------------------------------------------------------" + '\x1b[0m');
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   // Update warna untuk tampilan berkedip
   colorIndex = (colorIndex + 1) % colors.length;
