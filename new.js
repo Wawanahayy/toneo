@@ -12,121 +12,123 @@ let potentialPoints = 0;
 let countdown = "Calculating...";
 let pointsTotal = 0;
 let pointsToday = 0;
-let startTime;
+let startTime; 
 
 const readFileAsync = promisify(fs.readFile);
-const writeFileAsync = promisify(fs.writeFile);
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-// Fungsi untuk membaca akun dari file
-async function getAccounts() {
+async function readJSONFile(filePath) {
   try {
-    const data = await readFileAsync('accounts.json', 'utf8');
+    const data = await readFileAsync(filePath, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    return [];
+    console.error(`Error reading file ${filePath}:`, error);
+    return null;
   }
 }
 
-// Fungsi untuk menambahkan akun ke file
-async function addAccount(email, password) {
-  const accounts = await getAccounts();
-  accounts.push({ email, password });
-  await writeFileAsync('accounts.json', JSON.stringify(accounts, null, 2));
-}
-
-// Fungsi untuk mendapatkan proxy dari file
-async function getProxies() {
-  try {
-    const data = await readFileAsync('proxies.json', 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-// Fungsi untuk menambahkan proxy ke file
-async function addProxy(proxy) {
-  const proxies = await getProxies();
-  proxies.push(proxy);
-  await writeFileAsync('proxies.json', JSON.stringify(proxies, null, 2));
-}
-
-// Fungsi untuk mendapatkan userId
-async function getUserId() {
-  return new Promise((resolve) => {
-    rl.question('Enter your user ID: ', (userId) => {
-      resolve(userId);
-    });
-  });
-}
-
-// Fungsi untuk menghubungkan ke WebSocket
-async function connectWebSocket(userId) {
-  if (socket) return;
+async function connectWebSocket(userId, proxy, accountIndex) {
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
-  socket = new WebSocket(wsUrl);
 
-  startTime = new Date();
+  const agent = proxy ? new HttpsProxyAgent(proxy) : undefined;
+  const wsOptions = { agent };
 
-  socket.onopen = async () => {
-    console.log("WebSocket connected");
-    // Implementasi lebih lanjut...
+  const socket = new WebSocket(wsUrl, wsOptions);
+  sockets.push(socket); // Menyimpan socket ke dalam array
+
+  socket.onopen = () => {
+    console.log(`WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})`);
+    startPing(socket, accountIndex); // Mulai mengirim PING setelah koneksi terbuka
   };
 
-  socket.onmessage = async (event) => {
+  socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log(`Received message:`, data);
-    // Implementasi lebih lanjut...
+    console.log(`Received message for account ${accountIndex + 1}:`, data);
   };
 
   socket.onclose = () => {
-    socket = null;
-    console.log("WebSocket disconnected");
+    console.log(`WebSocket disconnected for account ${accountIndex + 1}`);
+    removeSocket(socket); // Menghapus socket dari array
   };
 
   socket.onerror = (error) => {
-    console.error("WebSocket error:", error);
+    console.error(`WebSocket error for account ${accountIndex + 1}:`, error);
   };
 }
 
-// Fungsi utama
-async function main() {
-  rl.question('Do you want to add an account? (yes/no): ', async (answer) => {
-    if (answer.toLowerCase() === 'yes') {
-      rl.question('Email: ', (email) => {
-        rl.question('Password: ', async (password) => {
-          await addAccount(email, password);
-          console.log('Account added!');
-          rl.close();
-        });
-      });
-    } else {
-      rl.question('Do you want to add a proxy? (yes/no): ', async (answer) => {
-        if (answer.toLowerCase() === 'yes') {
-          rl.question('Proxy: ', async (proxy) => {
-            await addProxy(proxy);
-            console.log('Proxy added!');
-            rl.close();
-          });
-        } else {
-          const userId = await getUserId();
-          if (userId) {
-            await connectWebSocket(userId);
-          } else {
-            console.error("Failed to retrieve user ID.");
-            rl.close();
-          }
+function startPing(socket, accountIndex) {
+  const pingInterval = setInterval(() => {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'PING' })); // Mengirim PING
+      console.log(`PING sent to account ${accountIndex + 1}`);
+    }
+  }, 5000); // Kirim PING setiap 5 detik
+  pingIntervals.push(pingInterval); // Simpan interval PING
+}
+
+function removeSocket(socket) {
+  const index = sockets.indexOf(socket);
+  if (index > -1) {
+    sockets.splice(index, 1);
+    clearInterval(pingIntervals[index]); // Hentikan interval PING jika socket terputus
+    pingIntervals.splice(index, 1); // Hapus interval dari array
+  }
+}
+
+async function getUserId(account, index) {
+  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+
+  const email = account.email;
+  const password = account.password;
+
+  return new Promise(async (resolve) => {
+    try {
+      const response = await axios.post(loginUrl, { email, password }, {
+        headers: {
+          authorization,
+          apikey,
+          "Content-Type": "application/json"
         }
       });
+
+      if (response.data && response.data.user) {
+        console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
+        fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
+        resolve(response.data.user.id);
+      } else {
+        console.error(`User not found for account ${index + 1}.`);
+        resolve(null);
+      }
+    } catch (error) {
+      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+      resolve(null);
     }
   });
+}
+
+async function main() {
+  const accounts = await readJSONFile('akun.json');
+  const proxies = await readJSONFile('proxy.json');
+
+  if (!accounts || !proxies || accounts.length !== proxies.length) {
+    console.error("Error: accounts and proxies must be present and have the same length.");
+    return;
+  }
+
+  for (let i = 0; i < accounts.length; i++) {
+    const account = accounts[i];
+    const proxy = proxies[i];
+    const userId = await getUserId(account, i);
+    
+    if (userId) {
+      await connectWebSocket(userId, proxy, i);
+    } else {
+      console.error(`Failed to retrieve user ID for account ${i + 1}.`);
+    }
+  }
 }
 
 main().catch(console.error);
