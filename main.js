@@ -256,36 +256,44 @@ async function getUserId() {
       headers: {
         'Content-Type': 'application/json'
       },
-      data: JSON.stringify(account),
-      ...(proxy && {
-        proxy: {
-          host: proxy.host,
-          port: proxy.port,
-          protocol: 'http' // Atur sesuai jenis proxy
-        }
-      })
+      data: JSON.stringify({
+        email: account.email,
+        password: account.password,
+      }),
     };
+
+    if (proxy) {
+      axiosConfig.proxy = {
+        host: proxy.host,
+        port: proxy.port,
+        auth: proxy.username && proxy.password ? {
+          username: proxy.username,
+          password: proxy.password,
+        } : null, // Hanya set jika username dan password ada
+      };
+    }
 
     axios(axiosConfig)
       .then(response => {
-        if (response.data.access_token) {
-          console.log(`User ${account.email} logged in successfully with proxy ${proxy ? proxy.host : 'none'}`);
-          connectWebSocket(response.data.user.id);
-          resolve(response.data.user.id);
-        } else {
-          console.error("Login failed:", response.data);
-          reject("Login failed");
-        }
+        console.log("Login successful:", response.data);
+        resolve(response.data.user.id); // Mengembalikan user ID
       })
       .catch(error => {
-        console.error("Error logging in:", error.message);
-        reject(error.message);
+        console.error("Login failed:", error.response ? error.response.data : error.message);
+        reject(error);
       });
   });
 }
 
 async function start() {
-  await getUserId();
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      await connectWebSocket(userId);
+    }
+  } catch (error) {
+    console.error("Failed to start:", error);
+  }
 }
 
 start();
