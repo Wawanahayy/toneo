@@ -130,10 +130,21 @@ function updateDisplay() {
   // Menampilkan garis pemisah di atas tabel
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
   
-  // Menampilkan header tabel dengan warna berkedip
-  console.log(colors[colorIndex] + " ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  JOIN MY CHANNEL TG: " + '\x1b[0m');
+  const header = [
+  "ACCOUNT".padEnd(15),
+  "EMAIL".padEnd(30),
+  "DATE/JAM:".padEnd(12),
+  "Poin DAILY:".padEnd(15),
+  "Total Poin:".padEnd(12),
+  "Proxy:".padEnd(10),
+  "PING:".padEnd(10),
+  "TIME RUN:".padEnd(15),
+  "Websocket:".padEnd(15),
+  "JOIN MY CHANNEL TG:".padEnd(25)
+];
 
-  // Menampilkan garis pemisah di bawah header
+console.log(colors[colorIndex] + header.join(" | ") + '\x1b[0m');
+
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   // Menampilkan setiap akun
@@ -152,14 +163,6 @@ function updateDisplay() {
   // Update warna untuk tampilan berkedip
   colorIndex = (colorIndex + 1) % colors.length;
 }
-
-// Fungsi untuk memulai tampilan berkedip
-function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
-}
-
-// Memulai efek berkedip
-startBlinkingColorMessage();
 
 
 // Fungsi untuk memulai tampilan berkedip
