@@ -38,20 +38,24 @@ async function connectWebSocket(userId, proxy, accountIndex) {
 
   socket.onopen = () => {
     console.log(`WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})`);
+    fs.appendFileSync('logs.txt', `WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})\n`, 'utf8');
   };
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.log(`Received message for account ${accountIndex + 1}:`, data);
+    fs.appendFileSync('logs.txt', `Received message for account ${accountIndex + 1}: ${JSON.stringify(data)}\n`, 'utf8');
   };
 
   socket.onclose = () => {
     console.log(`WebSocket disconnected for account ${accountIndex + 1}`);
+    fs.appendFileSync('logs.txt', `WebSocket disconnected for account ${accountIndex + 1}\n`, 'utf8');
     socket = null;
   };
 
   socket.onerror = (error) => {
     console.error(`WebSocket error for account ${accountIndex + 1}:`, error);
+    fs.appendFileSync('logs.txt', `WebSocket error for account ${accountIndex + 1}: ${error.message}\n`, 'utf8');
   };
 }
 
@@ -78,20 +82,20 @@ async function getUserId(account, index) {
 
       if (response.data && response.data.user) {
         console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
-        // Tambahkan logging di sini
         fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
         resolve(response.data.user.id);
       } else {
         console.error(`User not found for account ${index + 1}.`);
+        fs.appendFileSync('logs.txt', `User not found for account ${index + 1}.\n`, 'utf8');
         resolve(null);
       }
     } catch (error) {
       console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+      fs.appendFileSync('logs.txt', `Error during login for account ${index + 1}: ${error.response ? error.response.data : error.message}\n`, 'utf8');
       resolve(null);
     }
   });
 }
-
 
 async function main() {
   const accounts = await readJSONFile('akun.json');
@@ -99,6 +103,7 @@ async function main() {
 
   if (!accounts || !proxies || accounts.length !== proxies.length) {
     console.error("Error: accounts and proxies must be present and have the same length.");
+    fs.appendFileSync('logs.txt', "Error: accounts and proxies must be present and have the same length.\n", 'utf8');
     return;
   }
 
@@ -108,10 +113,10 @@ async function main() {
     const userId = await getUserId(account, i);
     
     if (userId) {
-      // Hanya sambungkan WebSocket jika userId valid
-      await connectWebSocket(userId, proxy, i); // Tambahkan index akun
+      await connectWebSocket(userId, proxy, i); // Hanya sambungkan WebSocket jika userId valid
     } else {
       console.error(`Failed to retrieve user ID for account ${i + 1}.`);
+      fs.appendFileSync('logs.txt', `Failed to retrieve user ID for account ${i + 1}.\n`, 'utf8');
     }
   }
 }
