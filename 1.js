@@ -127,18 +127,23 @@ function updateDisplay() {
 
   console.clear();
 
-  // Menampilkan header tabel dengan warna berkedip
-  console.log(colors[colorIndex] + "----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log(" ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+  // Menampilkan garis pemisah di atas tabel
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
   
+  // Menampilkan header tabel dengan warna berkedip
+  console.log(colors[colorIndex] + " ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: " + '\x1b[0m');
+
+  // Menampilkan garis pemisah di bawah header
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+
   // Menampilkan setiap akun
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    console.log(` AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
+    // Menampilkan informasi akun dengan warna berkedip
+    console.log(colors[colorIndex] + ` AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
   });
 
   // Menampilkan garis pemisah di bawah tabel
@@ -147,6 +152,15 @@ function updateDisplay() {
   // Update warna untuk tampilan berkedip
   colorIndex = (colorIndex + 1) % colors.length;
 }
+
+// Fungsi untuk memulai tampilan berkedip
+function startBlinkingColorMessage() {
+  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
+}
+
+// Memulai efek berkedip
+startBlinkingColorMessage();
+
 
 // Fungsi untuk memulai tampilan berkedip
 function startBlinkingColorMessage() {
