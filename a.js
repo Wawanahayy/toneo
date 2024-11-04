@@ -122,56 +122,58 @@ function startPing(socket, email) {
 }
 
 function updateDisplay() {
-  const currentTime = formatDate(new Date());
-  const elapsedTime = calculateElapsedTime();
+    const currentTime = formatDate(new Date());
+    const elapsedTime = calculateElapsedTime();
 
-  console.clear();
+    console.clear();
 
-  let leftColumn = [];
-  let rightColumn = [];
+    let leftColumn = [];
+    let rightColumn = [];
 
-  accountsData.forEach((account, index) => {
-    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
-    const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive';
+    accountsData.forEach((account, index) => {
+        const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+        const proxyStatus = account.proxy ? 'true' : 'false';
+        const pingStatus = account.pingStatus || 'Inactive';
 
-    // Menggunakan nilai default jika properti tidak ada
-    const pointsToday = account.pointsToday ?? 0;
-    const pointsTotal = account.pointsTotal ?? 0; 
+        // Menggunakan nilai default jika properti tidak ada
+        const pointsToday = account.pointsToday ?? 0;
+        const pointsTotal = account.pointsTotal ?? 0;
 
-    // Format informasi akun
-    const accountInfo = `
-AKUN ${index + 1}: ${account.email.padEnd(40)} | 
-DATE/JAM   : ${currentTime.padEnd(30)} | 
-Poin DAILY : ${pointsToday.toString().padEnd(30)} | 
-Total Poin : ${pointsTotal.toString().padEnd(30)} | 
-Proxy      : ${proxyStatus.padEnd(30)} | 
-PING       : ${pingStatus.padEnd(30)} | 
-TIME RUN   : ${elapsedTime.padEnd(30)} | 
-Websocket  : ${websocketStatus.padEnd(30)} | 
-TELEGRAM   : @AirdropJP_JawaPride`.replace(/\n/g, ' '); // Menghapus baris baru
+        // Format untuk satu akun
+        const accountInfo = `
+---------------------------------
+AKUN ${index + 1}: ${account.email}
+DATE/JAM  : ${currentTime}
+Poin DAILY: ${pointsToday}
+Total Poin: ${pointsTotal}
+Proxy     : ${proxyStatus}
+PING      : ${pingStatus}
+TIME RUN  : ${elapsedTime}
+Websocket : ${websocketStatus}
+TELEGRAM  : @AirdropJP_JawaPride
+---------------------------------`;
 
-    // Mengisi kolom kiri dan kanan secara bergantian
-    if (index % 2 === 0) {
-      leftColumn.push(accountInfo);
-    } else {
-      rightColumn.push(accountInfo);
+        // Mengisi kolom kiri dan kanan
+        if (index % 2 === 0) {
+            leftColumn.push(accountInfo);
+        } else {
+            rightColumn.push(accountInfo);
+        }
+    });
+
+    // Menampilkan kolom kiri dan kanan
+    const maxLength = Math.max(leftColumn.length, rightColumn.length);
+    for (let i = 0; i < maxLength; i++) {
+        const leftLine = leftColumn[i] || '';
+        const rightLine = rightColumn[i] || '';
+        console.log(`${leftLine} | ${rightLine}`);
     }
-  });
 
-  // Menampilkan kolom kiri dan kanan
-  const maxLength = Math.max(leftColumn.length, rightColumn.length);
-  for (let i = 0; i < maxLength; i++) {
-    const leftLine = leftColumn[i] || '';
-    const rightLine = rightColumn[i] || '';
-    console.log(`${leftLine} | ${rightLine}`);
-  }
-
-  currentColorIndex = (currentColorIndex + 1) % colors.length;
+    currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
 function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 1000);
+    setInterval(updateDisplay, 1000);
 }
 
 
