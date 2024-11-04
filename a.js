@@ -123,9 +123,9 @@ function updateDisplay() {
 
   console.clear();
 
-  console.log("-----------------------------------------------------------------------");
-  console.log("   DETAILS YOUR ACCOUNT HERE      | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING: | TIME RUN: | Websocket: | TELEGRAM: ");
-  console.log("-----------------------------------------------------------------------");
+  console.log("---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  console.log("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING: | TIME RUN: | Websocket: | TELEGRAM: ");
+  console.log("---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
@@ -134,7 +134,7 @@ function updateDisplay() {
     console.log(`AKUN ${index + 1}:     | ${account.email}   |   ${currentTime} |    ${account.pointsToday}  |  ${proxyStatus}  | Active |   ${elapsedTime}  | Connected  | @AirdropJP_JawaPride`);
   });
 
-  console.log("-----------------------------------------------------------------------");
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 }
 
 async function getUserId(account, index) {
