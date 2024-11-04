@@ -26,7 +26,7 @@ async function connectWebSocket(userId, proxy) {
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
   // Mengatur proxy di WebSocket
-  const agent = proxy ? new HttpsProxyAgent(proxy) : undefined; // Gunakan constructor dengan benar
+  const agent = proxy ? new HttpsProxyAgent(proxy) : undefined; // Pastikan menggunakan constructor dengan benar
   
   const wsOptions = {
     agent // Menyertakan agent jika ada
