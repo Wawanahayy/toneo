@@ -2,10 +2,9 @@ const WebSocket = require('ws');
 const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
-const { HttpsProxyAgent } = require('https-proxy-agent'); // Ubah ini
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
-let socket = null;
-let startTime;
+let sockets = []; // Array untuk menyimpan semua koneksi WebSocket
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -20,21 +19,19 @@ async function readJSONFile(filePath) {
 }
 
 async function connectWebSocket(userId, proxy, accountIndex) {
-  if (socket) return; // Pastikan hanya satu koneksi
   const version = "v0.2";
-  const url = "wss://secure.ws.teneo.pro"; // URL WebSocket
+  const url = "wss://secure.ws.teneo.pro"; 
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
-  // Mengatur proxy di WebSocket
   const agent = proxy ? new HttpsProxyAgent(proxy) : undefined;
 
   const wsOptions = {
     agent
   };
 
-  socket = new WebSocket(wsUrl, wsOptions);
+  const socket = new WebSocket(wsUrl, wsOptions);
 
-  startTime = new Date();
+  sockets.push(socket); // Menyimpan koneksi WebSocket ke array
 
   socket.onopen = () => {
     console.log(`WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})`);
@@ -50,12 +47,13 @@ async function connectWebSocket(userId, proxy, accountIndex) {
   socket.onclose = () => {
     console.log(`WebSocket disconnected for account ${accountIndex + 1}`);
     fs.appendFileSync('logs.txt', `WebSocket disconnected for account ${accountIndex + 1}\n`, 'utf8');
-    socket = null;
+    // Menghapus koneksi dari array setelah ditutup
+    sockets = sockets.filter(s => s !== socket);
   };
 
   socket.onerror = (error) => {
     console.error(`WebSocket error for account ${accountIndex + 1}:`, error);
-    fs.appendFileSync('logs.txt', `WebSocket error for account ${accountIndex + 1}: ${error.message}\n`, 'utf8');
+    fs.appendFileSync('logs.txt', `WebSocket error for account ${accountIndex + 1}: ${error}\n`, 'utf8');
   };
 }
 
@@ -86,12 +84,10 @@ async function getUserId(account, index) {
         resolve(response.data.user.id);
       } else {
         console.error(`User not found for account ${index + 1}.`);
-        fs.appendFileSync('logs.txt', `User not found for account ${index + 1}.\n`, 'utf8');
         resolve(null);
       }
     } catch (error) {
       console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
-      fs.appendFileSync('logs.txt', `Error during login for account ${index + 1}: ${error.response ? error.response.data : error.message}\n`, 'utf8');
       resolve(null);
     }
   });
@@ -103,22 +99,21 @@ async function main() {
 
   if (!accounts || !proxies || accounts.length !== proxies.length) {
     console.error("Error: accounts and proxies must be present and have the same length.");
-    fs.appendFileSync('logs.txt', "Error: accounts and proxies must be present and have the same length.\n", 'utf8');
     return;
   }
 
-  for (let i = 0; i < accounts.length; i++) {
-    const account = accounts[i];
+  const connectionPromises = accounts.map((account, i) => {
     const proxy = proxies[i];
-    const userId = await getUserId(account, i);
-    
-    if (userId) {
-      await connectWebSocket(userId, proxy, i); // Hanya sambungkan WebSocket jika userId valid
-    } else {
-      console.error(`Failed to retrieve user ID for account ${i + 1}.`);
-      fs.appendFileSync('logs.txt', `Failed to retrieve user ID for account ${i + 1}.\n`, 'utf8');
-    }
-  }
+    return getUserId(account, i).then(userId => {
+      if (userId) {
+        return connectWebSocket(userId, proxy, i); // Menghubungkan WebSocket untuk akun yang valid
+      } else {
+        console.error(`Failed to retrieve user ID for account ${i + 1}.`);
+      }
+    });
+  });
+
+  await Promise.all(connectionPromises); // Menunggu semua koneksi selesai
 }
 
 main().catch(console.error);
