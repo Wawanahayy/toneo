@@ -4,7 +4,8 @@ const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-let sockets = []; // Array untuk menyimpan semua koneksi WebSocket
+let sockets = []; // Menggunakan array untuk menyimpan semua socket
+let pingIntervals = []; // Array untuk menyimpan interval PING
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -20,41 +21,52 @@ async function readJSONFile(filePath) {
 
 async function connectWebSocket(userId, proxy, accountIndex) {
   const version = "v0.2";
-  const url = "wss://secure.ws.teneo.pro"; 
+  const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
 
   const agent = proxy ? new HttpsProxyAgent(proxy) : undefined;
-
-  const wsOptions = {
-    agent
-  };
+  const wsOptions = { agent };
 
   const socket = new WebSocket(wsUrl, wsOptions);
-
-  sockets.push(socket); // Menyimpan koneksi WebSocket ke array
+  sockets.push(socket); // Menyimpan socket ke dalam array
 
   socket.onopen = () => {
     console.log(`WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})`);
-    fs.appendFileSync('logs.txt', `WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})\n`, 'utf8');
+    startPing(socket, accountIndex); // Mulai mengirim PING setelah koneksi terbuka
   };
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.log(`Received message for account ${accountIndex + 1}:`, data);
-    fs.appendFileSync('logs.txt', `Received message for account ${accountIndex + 1}: ${JSON.stringify(data)}\n`, 'utf8');
   };
 
   socket.onclose = () => {
     console.log(`WebSocket disconnected for account ${accountIndex + 1}`);
-    fs.appendFileSync('logs.txt', `WebSocket disconnected for account ${accountIndex + 1}\n`, 'utf8');
-    // Menghapus koneksi dari array setelah ditutup
-    sockets = sockets.filter(s => s !== socket);
+    removeSocket(socket); // Menghapus socket dari array
   };
 
   socket.onerror = (error) => {
     console.error(`WebSocket error for account ${accountIndex + 1}:`, error);
-    fs.appendFileSync('logs.txt', `WebSocket error for account ${accountIndex + 1}: ${error}\n`, 'utf8');
   };
+}
+
+function startPing(socket, accountIndex) {
+  const pingInterval = setInterval(() => {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'PING' })); // Mengirim PING
+      console.log(`PING sent to account ${accountIndex + 1}`);
+    }
+  }, 5000); // Kirim PING setiap 5 detik
+  pingIntervals.push(pingInterval); // Simpan interval PING
+}
+
+function removeSocket(socket) {
+  const index = sockets.indexOf(socket);
+  if (index > -1) {
+    sockets.splice(index, 1);
+    clearInterval(pingIntervals[index]); // Hentikan interval PING jika socket terputus
+    pingIntervals.splice(index, 1); // Hapus interval dari array
+  }
 }
 
 async function getUserId(account, index) {
@@ -67,10 +79,7 @@ async function getUserId(account, index) {
 
   return new Promise(async (resolve) => {
     try {
-      const response = await axios.post(loginUrl, {
-        email,
-        password
-      }, {
+      const response = await axios.post(loginUrl, { email, password }, {
         headers: {
           authorization,
           apikey,
@@ -102,18 +111,17 @@ async function main() {
     return;
   }
 
-  const connectionPromises = accounts.map((account, i) => {
+  for (let i = 0; i < accounts.length; i++) {
+    const account = accounts[i];
     const proxy = proxies[i];
-    return getUserId(account, i).then(userId => {
-      if (userId) {
-        return connectWebSocket(userId, proxy, i); // Menghubungkan WebSocket untuk akun yang valid
-      } else {
-        console.error(`Failed to retrieve user ID for account ${i + 1}.`);
-      }
-    });
-  });
-
-  await Promise.all(connectionPromises); // Menunggu semua koneksi selesai
+    const userId = await getUserId(account, i);
+    
+    if (userId) {
+      await connectWebSocket(userId, proxy, i);
+    } else {
+      console.error(`Failed to retrieve user ID for account ${i + 1}.`);
+    }
+  }
 }
 
 main().catch(console.error);
