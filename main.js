@@ -19,8 +19,8 @@ async function readJSONFile(filePath) {
   }
 }
 
-async function connectWebSocket(userId, proxy) {
-  if (socket) return;
+async function connectWebSocket(userId, proxy, accountIndex) {
+  if (socket) return; // Pastikan hanya satu koneksi
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro"; // URL WebSocket
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
@@ -37,24 +37,23 @@ async function connectWebSocket(userId, proxy) {
   startTime = new Date();
 
   socket.onopen = () => {
-    console.log("WebSocket connected");
+    console.log(`WebSocket connected for account ${accountIndex + 1} (User ID: ${userId})`);
   };
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log(`Received message:`, data);
+    console.log(`Received message for account ${accountIndex + 1}:`, data);
   };
 
   socket.onclose = () => {
+    console.log(`WebSocket disconnected for account ${accountIndex + 1}`);
     socket = null;
-    console.log("WebSocket disconnected");
   };
 
   socket.onerror = (error) => {
-    console.error("WebSocket error:", error);
+    console.error(`WebSocket error for account ${accountIndex + 1}:`, error);
   };
 }
-
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
