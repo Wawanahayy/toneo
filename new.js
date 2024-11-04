@@ -70,7 +70,6 @@ async function connectWebSocket(userId, email, proxy) {
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
 
-    
     if (data.type === "pong") {
       const pingTime = Date.now() - lastPingTime;
       console.log(`Ping untuk user ${email}: ${pingTime} ms`);
@@ -123,17 +122,17 @@ function updateDisplay() {
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive'; 
 
-    console.log(`---------------------------------`);
+    console.log(`------------------------------------`);
+    console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m`);
-    console.log(`${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${account.pointsToday}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`); 
-    console.log(`---------------------------------`);
+    console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
+    console.log(`------------------------------------`);
   });
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
