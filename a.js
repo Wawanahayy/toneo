@@ -168,6 +168,10 @@ function updateDisplay() {
   currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
+function startBlinkingColorMessage() {
+  setInterval(updateDisplay, 1000);
+}
+
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
