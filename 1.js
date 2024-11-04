@@ -3,12 +3,12 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-
 const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m']; // Warna tambahan
+
 let sockets = [];
 let pingIntervals = [];
 let isFirstMessage = {};
-let colorIndex = 0; // Indeks warna untuk kedip
+let colorIndex = 0; // Menggunakan index warna untuk kedip
 let lastPingTime;
 let pingInterval = 30000; // Anda bisa membuat ini dapat diatur
 let accountsData = [];
@@ -58,6 +58,7 @@ async function connectWebSocket(userId, email, proxy) {
       account.pingStatus = 'Active';
     }
     startPing(socket, email);
+    startBlinkingColorMessage();
     updateDisplay();
   };
 
@@ -126,39 +127,36 @@ function updateDisplay() {
 
   console.clear();
 
-  // Menampilkan header tabel dengan garis pemisah di atas dan bawah
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log(colors[colorIndex] + "ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    // Mencetak setiap baris akun
-    console.log(`${colors[colorIndex]}AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride\x1b[0m`);
+    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+    console.log(colors[colorIndex] + "     ACCOUNT     |    EMAIL         | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+
+    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
   });
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   // Update warna untuk tampilan berkedip
-  colorIndex = (colorIndex + 1) % colors.length; // Ubah indeks warna untuk berkedip
+  colorIndex = (colorIndex + 1) % colors.length;
 }
 
 // Fungsi untuk memulai tampilan berkedip
 function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
+  setInterval(updateDisplay, 3000); // Ubah warna setiap 1 detik
 }
 
-// Panggil fungsi untuk memulai tampilan berkedip
+// Memulai efek berkedip
 startBlinkingColorMessage();
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
@@ -182,26 +180,49 @@ async function getUserId(account, index) {
         resolve(null);
       }
     } catch (error) {
-      console.error(`Error retrieving user ID for account ${index + 1}:`, error.message);
+      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
       resolve(null);
     }
   });
 }
 
-// Memulai aplikasi
-(async () => {
+async function main() {
   const config = await getConfig();
-  accountsData = config.accounts; // Anggap config.accounts ada
+  const accounts = config.accounts;
 
-  // Mendapatkan User ID untuk semua akun
-  for (let index = 0; index < accountsData.length; index++) {
-    const account = accountsData[index];
-    const userId = await getUserId(account, index);
+  startTime = new Date();
+
+for (const account of accounts) {
+  if (account.email && account.password) {
+    const userId = await getUserId(account, accountsData.length);
     if (userId) {
-      account.userId = userId;
+      // Hanya menambahkan akun jika userId valid
+      accountsData.push({
+        email: account.email,
+        pointsTotal: 0,
+        pointsToday: 0,
+        proxy: account.proxy ? true : false,
+        pingStatus: 'Inactive',
+        userId // Store the userId
+      });
       await connectWebSocket(userId, account.email, account.proxy);
+    } else {
+      console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
     }
+  } else {
+    console.error("Email and password must be provided for each account.");
   }
+}
 
-  startTime = new Date(); // Inisialisasi waktu mulai
-})();
+}
+
+// Clean up on exit
+process.on('SIGINT', () => {
+  console.log("Cleaning up...");
+  pingIntervals.forEach(clearInterval);
+  sockets.forEach(socket => socket.close());
+  process.exit();
+});
+
+// Start the main function
+main().catch(error => console.error("Error in main function:", error));
