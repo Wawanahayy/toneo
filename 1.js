@@ -121,17 +121,20 @@ function startPing(socket, email) {
   pingIntervals.push(pingId);
 }
 
+fconst colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m']; // Warna untuk teks
+let colorIndex = 0; // Indeks warna yang akan digunakan
+
 function updateDisplay() {
   const currentTime = formatDate(new Date());
   const elapsedTime = calculateElapsedTime();
 
   console.clear();
 
-  // Menampilkan header tabel dengan baris pemisah di atas dan bawah
+  // Menampilkan header tabel dengan garis pemisah di atas dan bawah
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log("ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+  console.log(colors[colorIndex] + "ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------"); // Baris pemisah tambahan
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
@@ -139,13 +142,13 @@ function updateDisplay() {
     const pingStatus = account.pingStatus || 'Inactive';
 
     // Mencetak setiap baris akun
-    console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride`);
+    console.log(`${colors[colorIndex]}AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride\x1b[0m`);
   });
 
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   // Update warna untuk tampilan berkedip
-  colorIndex = (colorIndex + 1) % colors.length;
+  colorIndex = (colorIndex + 1) % colors.length; // Ubah indeks warna untuk berkedip
 }
 
 // Fungsi untuk memulai tampilan berkedip
@@ -153,9 +156,9 @@ function startBlinkingColorMessage() {
   setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
 }
 
-
-// Memulai efek berkedip
+// Panggil fungsi untuk memulai tampilan berkedip
 startBlinkingColorMessage();
+
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
