@@ -4,8 +4,19 @@ const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-let sockets = []; // Menggunakan array untuk menyimpan semua socket
-let pingIntervals = []; // Array untuk menyimpan interval PING
+let sockets = [];
+let pingIntervals = [];
+let socket;
+let pointsTotal = 0;
+let pointsToday = 0;
+let potentialPoints = 0;
+let countdown;
+let countdownInterval;
+let logInterval;
+let pingInterval;
+let startTime;
+let startCountdownAndPoints;
+let startLogUpdates;
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -19,20 +30,21 @@ async function readJSONFile(filePath) {
   }
 }
 
-async function connectWebSocket(userId) {
+async function connectWebSocket(userId, proxy, index) {
   if (socket) return;
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
-  socket = new WebSocket(wsUrl);
 
-  startTime = new Date(); // Menyimpan waktu mulai saat koneksi WebSocket
+  const agent = new HttpsProxyAgent(proxy);
+  socket = new WebSocket(wsUrl, { agent });
+
+  startTime = new Date();
 
   socket.onopen = async () => {
     const connectionTime = new Date();
-    const formattedConnectionTime = formatDate(connectionTime);
     await setLocalStorage({ lastUpdated: connectionTime.toISOString() });
-    console.log("WebSocket connected at", formattedConnectionTime);
+    console.log("WebSocket connected");
     startPinging();
     startCountdownAndPoints();
     startLogUpdates();
@@ -40,20 +52,16 @@ async function connectWebSocket(userId) {
 
   socket.onmessage = async (event) => {
     const data = JSON.parse(event.data);
-    const messageTime = new Date(data.date);
-    const formattedMessageTime = formatDate(messageTime);
-    
-    data.DATE = formattedMessageTime;
+    data.DATE = new Date(data.date).toISOString();
 
     console.log(`Received message from WebSocket:`, {
       ...data,
-      currentTime: formatDate(new Date())
+      currentTime: new Date().toISOString()
     });
 
     if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-      const lastUpdated = new Date().toISOString();
       await setLocalStorage({
-        lastUpdated: lastUpdated,
+        lastUpdated: new Date().toISOString(),
         pointsTotal: data.pointsTotal,
         pointsToday: data.pointsToday,
       });
@@ -128,7 +136,7 @@ const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1
 
 function calculateElapsedTime() {
   const now = new Date();
-  const elapsedTime = Math.floor((now - startTime) / 1000); // Dalam detik
+  const elapsedTime = Math.floor((now - startTime) / 1000);
   const minutes = String(Math.floor(elapsedTime / 60)).padStart(2, '0');
   const seconds = String(elapsedTime % 60).padStart(2, '0');
   return `${minutes}:${seconds}`;
@@ -136,15 +144,15 @@ function calculateElapsedTime() {
 
 function updateBlinkingColorMessage() {
   console.clear();
-  const currentTime = formatDate(new Date());
+  const currentTime = new Date().toISOString();
   const websocketStatus = socket && socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'; 
-  const elapsedTime = calculateElapsedTime(); // Menghitung waktu berjalan
+  const elapsedTime = calculateElapsedTime();
   console.log(`------------------------------------`);
   console.log(`${colors[currentColorIndex]}Waktu Saat Ini: ${currentTime}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}Poin Hari Ini: ${pointsToday}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}Total Poin: ${pointsTotal}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}Websocket: ${websocketStatus}\x1b[0m`); 
-  console.log(`${colors[currentColorIndex]}TIME RUN: ${elapsedTime}\x1b[0m`); // Menampilkan waktu berjalan
+  console.log(`${colors[currentColorIndex]}TIME RUN: ${elapsedTime}\x1b[0m`); 
   console.log(`${colors[currentColorIndex]}FOLLOW TG: @AirdropJP_JawaPride\x1b[0m`); 
   console.log(`------------------------------------`);
 
@@ -197,6 +205,7 @@ async function updateCountdownAndPoints() {
 
   await setLocalStorage({ potentialPoints, countdown });
 }
+
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
@@ -217,39 +226,31 @@ async function getUserId(account, index) {
 
       if (response.data && response.data.user) {
         console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
-        fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
+        fs.appendFileSync('successful_accounts.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`);
         resolve(response.data.user.id);
       } else {
-        console.error(`User not found for account ${index + 1}.`);
+        console.log(`Failed to get User ID for account ${index + 1}`);
         resolve(null);
       }
     } catch (error) {
-      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+      console.error(`Error getting User ID for account ${index + 1}:`, error);
       resolve(null);
     }
   });
 }
 
-async function main() {
-  const accounts = await readJSONFile('akun.json');
-  const proxies = await readJSONFile('proxy.json');
+async function startProcess() {
+  const accounts = await readJSONFile('account.json');
+  if (!accounts) return;
 
-  if (!accounts || !proxies || accounts.length !== proxies.length) {
-    console.error("Error: accounts and proxies must be present and have the same length.");
-    return;
-  }
-
-  for (let i = 0; i < accounts.length; i++) {
-    const account = accounts[i];
-    const proxy = proxies[i];
-    const userId = await getUserId(account, i);
-    
+  for (let index = 0; index < accounts.length; index++) {
+    const account = accounts[index];
+    const userId = await getUserId(account, index);
     if (userId) {
-      await connectWebSocket(userId, proxy, i);
-    } else {
-      console.error(`Failed to retrieve user ID for account ${i + 1}.`);
+      await connectWebSocket(userId, account.proxy, index);
     }
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 }
 
-main().catch(console.error);
+startProcess();
