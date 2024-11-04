@@ -137,36 +137,37 @@ function startBlinkingColorMessage() {
   setInterval(updateDisplay, 1000);
 }
 
-async function getUserId(email, password) {
-  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+async function getUserId(account, index) {
+    const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
+    const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+    const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
-  console.log(`Attempting to log in with email: ${email}`);
+    const email = account.email;
+    const password = account.password;
 
-  try {
-    const response = await axios.post(loginUrl, {
-      email,
-      password
-    }, {
-      headers: {
-        authorization,
-        apikey,
-        "Content-Type": "application/json"
-      }
+    return new Promise(async (resolve) => {
+        try {
+            const response = await axios.post(loginUrl, { email, password }, {
+                headers: {
+                    authorization,
+                    apikey,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (response.data && response.data.user) {
+                console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
+                fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
+                resolve(response.data.user.id);
+            } else {
+                console.error(`User not found for account ${index + 1}.`);
+                resolve(null);
+            }
+        } catch (error) {
+            console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+            resolve(null);
+        }
     });
-
-    if (response.data && response.data.user) {
-      console.log(`User ID: ${response.data.user.id}`);
-      return response.data.user.id;
-    } else {
-      console.error("User not found.");
-      return null;
-    }
-  } catch (error) {
-    console.error("Error during login:", error.response ? error.response.data : error.message);
-    return null;
-  }
 }
 
 async function main() {
