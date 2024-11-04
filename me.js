@@ -127,41 +127,48 @@ function updateDisplay() {
 
   console.clear();
 
-  // Determine the maximum number of accounts that can fit in one line
-  const maxAccountsPerLine = Math.floor(process.stdout.columns / 50); // 50 is an approximate width for each account block
-  const accountLines = [];
+  const accountLines = accountsData.map((account, index) => {
+    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+    const proxyStatus = account.proxy ? 'true' : 'false';
+    const pingStatus = account.pingStatus || 'Inactive';
 
-  // Organize account data into lines
-  for (let i = 0; i < accountsData.length; i += maxAccountsPerLine) {
-    accountLines.push(accountsData.slice(i, i + maxAccountsPerLine));
-  }
-
-  // Display account information
-  accountLines.forEach((line, lineIndex) => {
-    line.forEach((account, index) => {
-      const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
-      const proxyStatus = account.proxy ? 'true' : 'false';
-      const pingStatus = account.pingStatus || 'Inactive';
-
-      const accountOutput = `
-        ---------------------------------
-        AKUN ${lineIndex * maxAccountsPerLine + index + 1}: ${account.email}
-        DATE/JAM  : ${currentTime}
-        Poin DAILY: ${account.pointsToday}
-        Total Poin: ${account.pointsTotal}
-        Proxy     : ${proxyStatus}
-        PING      : ${pingStatus}
-        TIME RUN  : ${elapsedTime}
-        Websocket : ${websocketStatus}
-        TELEGRAM  : @AirdropJP_JawaPride
-        ---------------------------------`.trim();
-
-      // Print the account output with color
-      console.log(`${colors[currentColorIndex]}${accountOutput}\x1b[0m`);
-    });
+    return {
+      index: index + 1,
+      email: account.email,
+      currentTime: currentTime,
+      pointsToday: account.pointsToday,
+      pointsTotal: account.pointsTotal,
+      proxyStatus: proxyStatus,
+      pingStatus: pingStatus,
+      elapsedTime: elapsedTime,
+      websocketStatus: websocketStatus,
+    };
   });
 
-  currentColorIndex = (currentColorIndex + 1) % colors.length;
+  // Menampilkan informasi akun secara bersebelahan
+  const accountDisplayLines = accountLines.reduce((acc, account, index) => {
+    const lineIndex = Math.floor(index / 2);
+    if (!acc[lineIndex]) acc[lineIndex] = [];
+    acc[lineIndex].push(account);
+    return acc;
+  }, []);
+
+  accountDisplayLines.forEach(line => {
+    const lineOutput = line.map(account => `
+      AKUN ${account.index}: ${account.email}                 | 
+      DATE/JAM  : ${account.currentTime}                         | 
+      Poin DAILY: ${account.pointsToday}                          | 
+      Total Poin: ${account.pointsTotal}                           | 
+      Proxy     : ${account.proxyStatus}                           | 
+      PING      : ${account.pingStatus}                            | 
+      TIME RUN  : ${account.elapsedTime}                           | 
+      Websocket : ${account.websocketStatus}                       | 
+      TELEGRAM  : @AirdropJP_JawaPride
+    `.trim()).join('\n');
+
+    console.log(lineOutput);
+    console.log('-----------------------------------------------------------------------------------');
+  });
 }
 
 function startBlinkingColorMessage() {
@@ -171,7 +178,7 @@ function startBlinkingColorMessage() {
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
@@ -218,9 +225,10 @@ async function main() {
           pointsToday: 0,
           proxy: account.proxy ? true : false,
           pingStatus: 'Inactive',
-          userId // Store the userId
+          userId: userId,
+          socket: null
         });
-        await connectWebSocket(userId, account.email, account.proxy);
+        connectWebSocket(userId, account.email, account.proxy);
       }
     }
   }
