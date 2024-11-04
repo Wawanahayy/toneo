@@ -127,8 +127,7 @@ function updateDisplay() {
 
   console.clear();
 
-  let leftColumn = [];
-  let rightColumn = [];
+  let displayLines = [];
 
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
@@ -136,40 +135,35 @@ function updateDisplay() {
     const pingStatus = account.pingStatus || 'Inactive';
 
     // Menggunakan nilai default jika properti tidak ada
-    const pointsToday = account.pointsToday ?? 0; // Jika undefined, gunakan 0
-    const pointsTotal = account.pointsTotal ?? 0; // Jika undefined, gunakan 0
+    const pointsToday = account.pointsToday ?? 0;
+    const pointsTotal = account.pointsTotal ?? 0; 
 
-    if (index % 2 === 0) {
-      leftColumn.push('--------------------------------------------------------------------------------');
-      leftColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(35)}`);
-      leftColumn.push(`DATE/JAM   : ${currentTime.padEnd(30)}`);
-      leftColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
-      leftColumn.push(`Total Poin : ${pointsTotal.toString().padEnd(30)}`);
-      leftColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
-      leftColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
-      leftColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
-      leftColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
-      leftColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)); // Memperbaiki baris ini
-      leftColumn.push('--------------------------------------------------------------------------------');
-    } else {
-      rightColumn.push('---------------------------------------------------------------------------------');
-      rightColumn.push(`AKUN ${index + 1}: ${account.email.padEnd(36)}`);
-      rightColumn.push(`DATE/JAM   : ${currentTime.padEnd(30)}`);
-      rightColumn.push(`Poin DAILY : ${pointsToday.toString().padEnd(30)}`);
-      rightColumn.push(`Total Poin : ${pointsTotal.toString().padEnd(30)}`);
-      rightColumn.push(`Proxy      : ${proxyStatus.padEnd(30)}`);
-      rightColumn.push(`PING       : ${pingStatus.padEnd(30)}`);
-      rightColumn.push(`TIME RUN   : ${elapsedTime.padEnd(30)}`);
-      rightColumn.push(`Websocket  : ${websocketStatus.padEnd(30)}`);
-      rightColumn.push(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)); // Memperbaiki baris ini
-      rightColumn.push('---------------------------------------------------------------------------------');
+    // Format informasi akun
+    const accountInfo = `
+AKUN ${index + 1}: ${account.email.padEnd(30)} | 
+DATE/JAM   : ${currentTime.padEnd(30)} | 
+Poin DAILY : ${pointsToday.toString().padEnd(30)} | 
+Total Poin : ${pointsTotal.toString().padEnd(30)} | 
+Proxy      : ${proxyStatus.padEnd(30)} | 
+PING       : ${pingStatus.padEnd(30)} | 
+TIME RUN   : ${elapsedTime.padEnd(30)} | 
+Websocket  : ${websocketStatus.padEnd(30)} | 
+TELEGRAM   : @AirdropJP_JawaPride`;
+
+    // Menyusun baris informasi untuk dua akun
+    const lineToDisplay = accountInfo.split('\n').map(line => line.trim()).join(' | ');
+    
+    displayLines.push(lineToDisplay);
+
+    // Menampilkan dua akun dalam satu iterasi
+    if (index % 2 === 1) {
+      console.log(displayLines.pop() + ' | ' + displayLines.pop()); // Mengeluarkan dua akun dari displayLines
     }
   });
 
-  for (let i = 0; i < Math.max(leftColumn.length, rightColumn.length); i++) {
-    const leftLine = leftColumn[i] || '';
-    const rightLine = rightColumn[i] || '';
-    console.log(`${leftLine} | ${rightLine}`);
+  // Menangani kasus ketika ada akun ganjil yang tersisa
+  if (accountsData.length % 2 === 1) {
+    console.log(displayLines.pop()); // Mengeluarkan akun terakhir jika ada
   }
 
   currentColorIndex = (currentColorIndex + 1) % colors.length;
@@ -178,6 +172,7 @@ function updateDisplay() {
 function startBlinkingColorMessage() {
   setInterval(updateDisplay, 1000);
 }
+
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
