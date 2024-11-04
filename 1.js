@@ -3,12 +3,12 @@ const { promisify } = require('util');
 const fs = require('fs');
 const axios = require('axios');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m']; // Warna tambahan
 
+const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m']; // Warna tambahan
 let sockets = [];
 let pingIntervals = [];
 let isFirstMessage = {};
-let colorIndex = 0; // Menggunakan index warna untuk kedip
+let colorIndex = 0; // Indeks warna untuk kedip
 let lastPingTime;
 let pingInterval = 30000; // Anda bisa membuat ini dapat diatur
 let accountsData = [];
@@ -58,7 +58,6 @@ async function connectWebSocket(userId, email, proxy) {
       account.pingStatus = 'Active';
     }
     startPing(socket, email);
-    startBlinkingColorMessage();
     updateDisplay();
   };
 
@@ -121,9 +120,6 @@ function startPing(socket, email) {
   pingIntervals.push(pingId);
 }
 
-fconst colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m']; // Warna untuk teks
-let colorIndex = 0; // Indeks warna yang akan digunakan
-
 function updateDisplay() {
   const currentTime = formatDate(new Date());
   const elapsedTime = calculateElapsedTime();
@@ -159,11 +155,10 @@ function startBlinkingColorMessage() {
 // Panggil fungsi untuk memulai tampilan berkedip
 startBlinkingColorMessage();
 
-
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
@@ -187,49 +182,26 @@ async function getUserId(account, index) {
         resolve(null);
       }
     } catch (error) {
-      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+      console.error(`Error retrieving user ID for account ${index + 1}:`, error.message);
       resolve(null);
     }
   });
 }
 
-async function main() {
+// Memulai aplikasi
+(async () => {
   const config = await getConfig();
-  const accounts = config.accounts;
+  accountsData = config.accounts; // Anggap config.accounts ada
 
-  startTime = new Date();
-
-for (const account of accounts) {
-  if (account.email && account.password) {
-    const userId = await getUserId(account, accountsData.length);
+  // Mendapatkan User ID untuk semua akun
+  for (let index = 0; index < accountsData.length; index++) {
+    const account = accountsData[index];
+    const userId = await getUserId(account, index);
     if (userId) {
-      // Hanya menambahkan akun jika userId valid
-      accountsData.push({
-        email: account.email,
-        pointsTotal: 0,
-        pointsToday: 0,
-        proxy: account.proxy ? true : false,
-        pingStatus: 'Inactive',
-        userId // Store the userId
-      });
+      account.userId = userId;
       await connectWebSocket(userId, account.email, account.proxy);
-    } else {
-      console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
     }
-  } else {
-    console.error("Email and password must be provided for each account.");
   }
-}
 
-}
-
-// Clean up on exit
-process.on('SIGINT', () => {
-  console.log("Cleaning up...");
-  pingIntervals.forEach(clearInterval);
-  sockets.forEach(socket => socket.close());
-  process.exit();
-});
-
-// Start the main function
-main().catch(error => console.error("Error in main function:", error));
+  startTime = new Date(); // Inisialisasi waktu mulai
+})();
