@@ -51,13 +51,13 @@ async function connectWebSocket(userId, email, proxy) {
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   let agent;
-  
+
   // Gunakan proxy jika ada
   if (proxy) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
-    agent = new HttpsProxyAgent(proxyUrl);
+    agent = new HttpsProxyAgent(proxyUrl); // Pastikan ini benar
   }
-  
+
   const socket = new WebSocket(wsUrl, { agent });
 
   socket.onopen = async () => {
