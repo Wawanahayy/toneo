@@ -153,7 +153,7 @@ Websocket : ${websocketStatus}
 TELEGRAM  : @AirdropJP_JawaPride
 ---------------------------------`;
 
-        // Mengisi kolom kiri dan kanan
+        // Mengisi kolom kiri dan kanan secara bergantian
         if (index % 2 === 0) {
             leftColumn.push(accountInfo);
         } else {
@@ -164,9 +164,10 @@ TELEGRAM  : @AirdropJP_JawaPride
     // Menampilkan kolom kiri dan kanan
     const maxLength = Math.max(leftColumn.length, rightColumn.length);
     for (let i = 0; i < maxLength; i++) {
-        const leftLine = leftColumn[i] || '';
-        const rightLine = rightColumn[i] || '';
-        console.log(`${leftLine} | ${rightLine}`);
+        const leftLine = leftColumn[i] ? leftColumn[i].trim() : '';
+        const rightLine = rightColumn[i] ? rightColumn[i].trim() : '';
+        const combinedLine = `${leftLine} ${' '.repeat(15)}| ${rightLine}`;
+        console.log(combinedLine);
     }
 
     currentColorIndex = (currentColorIndex + 1) % colors.length;
