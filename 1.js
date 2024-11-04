@@ -133,7 +133,9 @@ function updateDisplay() {
     const pingStatus = account.pingStatus || 'Inactive';
 
     console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-    console.log(colors[colorIndex] + ("     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+    console.log(colors[colorIndex] + "     DETAILS YOUR ACCOUNT HERE          | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
+    console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
     console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
     console.log(`AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
