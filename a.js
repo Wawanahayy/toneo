@@ -134,8 +134,8 @@ function updateDisplay() {
     const leftColumn = [];
     const rightColumn = [];
 
-    leftColumn.push('--------------------------------------------------------------------------------');
-    rightColumn.push('--------------------------------------------------------------------------------');
+    leftColumn.push('--------------------------------------------------------------');
+    rightColumn.push('-------------------------------------------------------------');
 
     for (let i = 0; i < columns; i++) {
         const leftAccountIndex = i; // Indeks untuk kolom kiri
@@ -160,7 +160,7 @@ function updateDisplay() {
             leftColumn.push(color(`TIME RUN   : ${elapsedTime.padEnd(30)}`));
             leftColumn.push(color(`Websocket  : ${websocketStatus.padEnd(30)}`));
             leftColumn.push(color(`TELEGRAM   : @AirdropJP_JawaPride`.padEnd(43)));
-            leftColumn.push('--------------------------------------------------------------------------------');
+            leftColumn.push('---------------------------------------------------');
         }
 
         // Kolom kanan
