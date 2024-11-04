@@ -131,10 +131,10 @@ function updateDisplay() {
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
   
   const header = [
-  "ACCOUNT".padEnd(10),
-  "EMAIL".padEnd(28),
-  "DATE/JAM:".padEnd(12),
-  "Poin DAILY:".padEnd(10),
+  "ACCOUNT".padEnd(13),
+  "EMAIL".padEnd(27),
+  "DATE/JAM:".padEnd(9),
+  "Poin DAILY:".padEnd(8),
   "Total Poin:".padEnd(12),
   "Proxy:".padEnd(6),
   "PING:".padEnd(10),
