@@ -127,48 +127,42 @@ function updateDisplay() {
 
   console.clear();
 
-  const accountLines = accountsData.map((account, index) => {
+  // Create a string for left and right columns
+  let leftColumn = '';
+  let rightColumn = '';
+
+  accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    return {
-      index: index + 1,
-      email: account.email,
-      currentTime: currentTime,
-      pointsToday: account.pointsToday,
-      pointsTotal: account.pointsTotal,
-      proxyStatus: proxyStatus,
-      pingStatus: pingStatus,
-      elapsedTime: elapsedTime,
-      websocketStatus: websocketStatus,
-    };
+    leftColumn += `---------------------------------\n`;
+    leftColumn += `${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}DATE/JAM  : ${currentTime}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m\n`;
+    leftColumn += `${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m\n`;
+    leftColumn += `---------------------------------\n`;
+
+    // Prepare right column for additional information if needed
+    rightColumn += `\n` // You can add more information to the right column here
   });
 
-  // Menampilkan informasi akun secara bersebelahan
-  const accountDisplayLines = accountLines.reduce((acc, account, index) => {
-    const lineIndex = Math.floor(index / 2);
-    if (!acc[lineIndex]) acc[lineIndex] = [];
-    acc[lineIndex].push(account);
-    return acc;
-  }, []);
+  // Display both columns side by side
+  const maxHeight = Math.max(leftColumn.split('\n').length, rightColumn.split('\n').length);
+  const leftLines = leftColumn.split('\n');
+  const rightLines = rightColumn.split('\n');
+  for (let i = 0; i < maxHeight; i++) {
+    const leftLine = leftLines[i] || '';
+    const rightLine = rightLines[i] || '';
+    console.log(`${leftLine}\t\t${rightLine}`);
+  }
 
-  accountDisplayLines.forEach(line => {
-    const lineOutput = line.map(account => `
-      AKUN ${account.index}: ${account.email}                 | 
-      DATE/JAM  : ${account.currentTime}                         | 
-      Poin DAILY: ${account.pointsToday}                          | 
-      Total Poin: ${account.pointsTotal}                           | 
-      Proxy     : ${account.proxyStatus}                           | 
-      PING      : ${account.pingStatus}                            | 
-      TIME RUN  : ${account.elapsedTime}                           | 
-      Websocket : ${account.websocketStatus}                       | 
-      TELEGRAM  : @AirdropJP_JawaPride
-    `.trim()).join('\n');
-
-    console.log(lineOutput);
-    console.log('-----------------------------------------------------------------------------------');
-  });
+  currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
 function startBlinkingColorMessage() {
@@ -177,8 +171,8 @@ function startBlinkingColorMessage() {
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
@@ -203,35 +197,3 @@ async function getUserId(account, index) {
       }
     } catch (error) {
       console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
-      resolve(null);
-    }
-  });
-}
-
-async function main() {
-  const config = await getConfig();
-  const accounts = config.accounts;
-
-  startTime = new Date();
-
-  for (const account of accounts) {
-    if (account.email && account.password) {
-      const userId = await getUserId(account, accountsData.length);
-      if (userId) {
-        // Hanya menambahkan akun jika userId valid
-        accountsData.push({
-          email: account.email,
-          pointsTotal: 0,
-          pointsToday: 0,
-          proxy: account.proxy ? true : false,
-          pingStatus: 'Inactive',
-          userId: userId,
-          socket: null
-        });
-        connectWebSocket(userId, account.email, account.proxy);
-      }
-    }
-  }
-}
-
-main().catch(console.error);
