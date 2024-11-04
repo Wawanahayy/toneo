@@ -136,8 +136,8 @@ function updateDisplay() {
   "DATE/JAM:".padEnd(11),
   "Poin DAILY:".padEnd(9),
   "Total Poin:".padEnd(12),
-  "Proxy:".padEnd(5),
-  "PING:".padEnd(10),
+  "Proxy:".padEnd(4),
+  "PING:".padEnd(9),
   "TIME RUN:".padEnd(12),
   "Websocket:".padEnd(15),
   "JOIN MY CHANNEL TG:".padEnd(25)
