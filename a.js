@@ -7,10 +7,8 @@ const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m'];
 
 let sockets = [];
 let pingIntervals = [];
-let isFirstMessage = {};
-let currentColorIndex = 0;
 let lastPingTime;
-let pingInterval = 30000; // You can make this configurable
+let pingInterval = 30000; // Anda dapat mengonfigurasi ini
 let accountsData = [];
 let startTime;
 
@@ -58,7 +56,6 @@ async function connectWebSocket(userId, email, proxy) {
       account.pingStatus = 'Active';
     }
     startPing(socket, email);
-    startBlinkingColorMessage();
     updateDisplay();
   };
 
@@ -80,7 +77,6 @@ async function connectWebSocket(userId, email, proxy) {
 function handleIncomingMessage(data, email) {
   if (data.type === "pong") {
     const pingTime = Date.now() - lastPingTime;
-    console.log(`Ping untuk user ${email}: ${pingTime} ms`);
     const account = accountsData.find(account => account.email === email);
     if (account) {
       account.pingStatus = 'Active';
@@ -127,60 +123,24 @@ function updateDisplay() {
 
   console.clear();
 
-  // Menginisialisasi string untuk menampung setiap baris informasi
-  let accountsInfo = '';
-  let dateInfo = '';
-  let pointsTodayInfo = '';
-  let totalPointsInfo = '';
-  let proxyInfo = '';
-  let pingInfo = '';
-  let timeRunInfo = '';
-  let websocketInfo = '';
-  let telegramInfo = '';
+  console.log("-----------------------------------------------------------------------");
+  console.log("   DETAILS YOUR ACCOUNT HERE      | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING: | TIME RUN: | Websocket: | TELEGRAM: ");
+  console.log("-----------------------------------------------------------------------");
 
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive';
 
-    // Menambahkan informasi setiap akun ke dalam string
-    accountsInfo += `${colors[currentColorIndex]}AKUN ${index + 1}: ${account.email.padEnd(30)} | `;
-    dateInfo += `${colors[currentColorIndex]}DATE/JAM: ${currentTime.padEnd(30)} | `;
-    pointsTodayInfo += `${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday.toString().padEnd(30)} | `;
-    totalPointsInfo += `${colors[currentColorIndex]}Total Poin: ${account.pointsTotal.toString().padEnd(30)} | `;
-    proxyInfo += `${colors[currentColorIndex]}Proxy: ${proxyStatus.padEnd(30)} | `;
-    pingInfo += `${colors[currentColorIndex]}PING: ${pingStatus.padEnd(30)} | `;
-    timeRunInfo += `${colors[currentColorIndex]}TIME RUN: ${elapsedTime.padEnd(30)} | `;
-    websocketInfo += `${colors[currentColorIndex]}Websocket: ${websocketStatus.padEnd(30)} | `;
-    telegramInfo += `${colors[currentColorIndex]}TELEGRAM: @AirdropJP_JawaPride`.padEnd(30) + ' | ';
+    console.log(`AKUN ${index + 1}:     | ${account.email}   |   ${currentTime} |    ${account.pointsToday}  |  ${proxyStatus}  | Active |   ${elapsedTime}  | Connected  | @AirdropJP_JawaPride`);
   });
 
-  // Menampilkan semua informasi dalam format tabel
-  console.log('-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------');
-  console.log(accountsInfo);
-  console.log(dateInfo);
-  console.log(pointsTodayInfo);
-  console.log(totalPointsInfo);
-  console.log(proxyInfo);
-  console.log(pingInfo);
-  console.log(timeRunInfo);
-  console.log(websocketInfo);
-  console.log(telegramInfo);
-  console.log('-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------');
-
-  currentColorIndex = (currentColorIndex + 1) % colors.length;
+  console.log("-----------------------------------------------------------------------");
 }
-
-
-function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 1000);
-}
-
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const authorization = "Bearer YOUR_AUTHORIZATION";
+  const apikey = "YOUR_API_KEY";
 
   const email = account.email;
   const password = account.password;
@@ -216,28 +176,26 @@ async function main() {
 
   startTime = new Date();
 
-for (const account of accounts) {
-  if (account.email && account.password) {
-    const userId = await getUserId(account, accountsData.length);
-    if (userId) {
-      // Hanya menambahkan akun jika userId valid
-      accountsData.push({
-        email: account.email,
-        pointsTotal: 0,
-        pointsToday: 0,
-        proxy: account.proxy ? true : false,
-        pingStatus: 'Inactive',
-        userId // Store the userId
-      });
-      await connectWebSocket(userId, account.email, account.proxy);
+  for (const account of accounts) {
+    if (account.email && account.password) {
+      const userId = await getUserId(account, accountsData.length);
+      if (userId) {
+        // Hanya menambahkan akun jika userId valid
+        accountsData.push({
+          email: account.email,
+          pointsTotal: 0,
+          pointsToday: 0,
+          proxy: account.proxy ? true : false,
+          userId // Store the userId
+        });
+        await connectWebSocket(userId, account.email, account.proxy);
+      } else {
+        console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
+      }
     } else {
-      console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
+      console.error("Email and password must be provided for each account.");
     }
-  } else {
-    console.error("Email and password must be provided for each account.");
   }
-}
-
 }
 
 // Clean up on exit
