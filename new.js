@@ -60,16 +60,23 @@ async function connectWebSocket(userId, proxy, account, accountIndex) {
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    
+
+    console.log(`Data received for account ${accountIndex + 1}:`, data); // Tambahkan log ini
+
     // Menampilkan pesan pertama sekali dengan log yang diterima
     if (isFirstMessage[accountIndex]) {
       console.log(`Received first message for account ${accountIndex + 1}:`);
       console.log(`Tanggal: ${new Date(data.date).toLocaleString()}`);
-      console.log(`Poin DAILY: ${data.pointsToday}`);
-      console.log(`Total Poin: ${data.pointsTotal}`);
+
+      // Menggunakan default values jika data tidak ada
+      const pointsToday = data.pointsToday || '0';
+      const pointsTotal = data.pointsTotal || '0';
+
+      console.log(`Poin DAILY: ${pointsToday}`);
+      console.log(`Total Poin: ${pointsTotal}`);
       console.log(`Pesan: ${data.message}`);
       console.log(`Pengguna Baru: ${data.isNewUser}`);
-      
+
       // Tandai bahwa pesan pertama telah diterima
       isFirstMessage[accountIndex] = false;
     }
@@ -106,7 +113,7 @@ function removeSocket(socket) {
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
