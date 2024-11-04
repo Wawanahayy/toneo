@@ -51,7 +51,7 @@ async function connectWebSocket(userId, proxy, account, accountIndex) {
     console.log(`${colors[currentColorIndex]}Poin DAILY: ${account.pointsToday}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Total Poin: ${account.pointsTotal}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Proxy     : ${proxyStatus}\x1b[0m`); 
-    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus}\x1b[0m`); 
+    console.log(`${colors[currentColorIndex]}PING      : ${pingStatus} \x1b[32m●\x1b[0m`); // Tambahkan titik bulat warna hijau
     console.log(`${colors[currentColorIndex]}TIME RUN  : ${elapsedTime}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}Websocket : ${websocketStatus}\x1b[0m`); 
     console.log(`${colors[currentColorIndex]}TELEGRAM  : @AirdropJP_JawaPride\x1b[0m`); 
@@ -77,7 +77,7 @@ function startPing(socket, accountIndex) {
   const pingInterval = setInterval(() => {
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: 'PING' })); // Mengirim PING
-      console.log(`PING sent to account ${accountIndex + 1}`);
+      // Hapus log pengiriman PING di sini
     }
   }, 5000); // Kirim PING setiap 5 detik
   pingIntervals.push(pingInterval); // Simpan interval PING
@@ -95,7 +95,7 @@ function removeSocket(socket) {
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
+  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9zZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
 
   const email = account.email;
   const password = account.password;
