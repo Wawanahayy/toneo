@@ -25,4 +25,4 @@ npm install axios
 npm install https-proxy-agent
 
 
-node main.js
+node multi.js
