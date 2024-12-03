@@ -136,6 +136,81 @@ function startPing(socket, email, accountIndex) {
   }, pingInterval);
 }
 
+function handleIncomingMessage(data, email) {
+  if (data.type === "pong") {
+    const pingTime = Date.now() - lastPingTime;
+    console.log(`Ping untuk user ${email}: ${pingTime} ms`);
+    const account = accountsData.find(account => account.email === email);
+    if (account) {
+      account.pingStatus = 'Active';
+    }
+  }
+
+  if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
+    const account = accountsData.find(account => account.email === email);
+    if (account) {
+      account.pointsTotal = data.pointsTotal;
+      account.pointsToday = data.pointsToday;
+      updateDisplay(); // This should now work correctly
+    }
+  }
+}
+
+// Function to update the display
+function updateDisplay() {
+  const currentTime = formatDate(new Date());
+  const elapsedTime = calculateElapsedTime();
+
+  console.clear();
+
+  // Menampilkan garis pemisah di atas tabel
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  
+  const header = [
+    "ACCOUNT".padEnd(12),
+    "EMAIL".padEnd(25),
+    "DATE/JAM:".padEnd(11),
+    "Poin DAILY:".padEnd(9),
+    "Total Poin:".padEnd(12),
+    "Proxy:".padEnd(3),
+    "PING:".padEnd(9),
+    "TIME RUN:".padEnd(12),
+    "Websocket:".padEnd(15),
+    "JOIN MY CHANNEL TG:".padEnd(25)
+  ];
+
+  console.log(colors[colorIndex] + header.join(" | ") + '\x1b[0m');
+
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+
+  // Menampilkan setiap akun
+  accountsData.forEach((account, index) => {
+    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+    const proxyStatus = account.proxy ? 'true' : 'false';
+    const pingStatus = account.pingStatus || 'Inactive';
+
+    // Menampilkan informasi akun dengan warna berkedip
+    console.log(colors[colorIndex] + `AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
+  });
+
+  // Menampilkan garis pemisah di bawah tabel
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+
+  // Update warna untuk tampilan berkedip
+  colorIndex = (colorIndex + 1) % colors.length;
+}
+
+
+
+// Fungsi untuk memulai tampilan berkedip
+function startBlinkingColorMessage() {
+  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
+}
+
+// Memulai efek berkedip
+startBlinkingColorMessage();
+
+
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
   const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
