@@ -121,38 +121,56 @@ function startPing(socket, email) {
   pingIntervals.push(pingId);
 }
 
-
-function updateDisplay(accountsData) {
+function updateDisplay() {
   const currentTime = formatDate(new Date());
   const elapsedTime = calculateElapsedTime();
 
   console.clear();
 
-  // Menampilkan header tabel dengan garis pemisah di atas dan bawah
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  console.log(colors[colorIndex] + "ACCOUNT     |    EMAIL                  | DATE/JAM:   | Poin DAILY: | Total Poin: | Proxy: | PING:      | TIME RUN:   | Websocket:       |  TELEGRAM: ");
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  // Menampilkan garis pemisah di atas tabel
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
+  const header = [
+    "ACCOUNT".padEnd(12),
+    "EMAIL".padEnd(25),
+    "DATE/JAM:".padEnd(11),
+    "Poin DAILY:".padEnd(9),
+    "Total Poin:".padEnd(12),
+    "Proxy:".padEnd(3),
+    "PING:".padEnd(9),
+    "TIME RUN:".padEnd(12),
+    "Websocket:".padEnd(15),
+    "JOIN MY CHANNEL TG:".padEnd(25)
+  ];
+
+  console.log(colors[colorIndex] + header.join(" | ") + '\x1b[0m');
+
+  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+
+  // Menampilkan setiap akun
   accountsData.forEach((account, index) => {
     const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
     const proxyStatus = account.proxy ? 'true' : 'false';
     const pingStatus = account.pingStatus || 'Inactive';
 
-    // Mencetak setiap baris akun
-    console.log(`${colors[colorIndex]}AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride\x1b[0m`);
+    // Menampilkan informasi akun dengan warna berkedip
+    console.log(colors[colorIndex] + ` AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
   });
 
+  // Menampilkan garis pemisah di bawah tabel
   console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
   // Update warna untuk tampilan berkedip
-  colorIndex = (colorIndex + 1) % colors.length; // Ubah indeks warna untuk berkedip
+  colorIndex = (colorIndex + 1) % colors.length;
 }
 
 // Fungsi untuk memulai tampilan berkedip
-function startBlinkingColorMessage(accountsData) {
-  setInterval(() => updateDisplay(accountsData), 3000); // Update setiap 3 detik
+function startBlinkingColorMessage() {
+  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
 }
+
+// Memulai efek berkedip
+startBlinkingColorMessage();
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
@@ -181,49 +199,26 @@ async function getUserId(account, index) {
         resolve(null);
       }
     } catch (error) {
-      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
+      console.error(`Error during login for account ${index + 1}:`, error);
       resolve(null);
     }
   });
 }
 
-async function main() {
+async function startProcess() {
   const config = await getConfig();
-  const accounts = config.accounts;
+  accountsData = config.accounts;
 
   startTime = new Date();
 
-for (const account of accounts) {
-  if (account.email && account.password) {
-    const userId = await getUserId(account, accountsData.length);
+  for (let i = 0; i < accountsData.length; i++) {
+    const account = accountsData[i];
+    const userId = await getUserId(account, i);
     if (userId) {
-      // Hanya menambahkan akun jika userId valid
-      accountsData.push({
-        email: account.email,
-        pointsTotal: 0,
-        pointsToday: 0,
-        proxy: account.proxy ? true : false,
-        pingStatus: 'Inactive',
-        userId // Store the userId
-      });
+      account.userId = userId;
       await connectWebSocket(userId, account.email, account.proxy);
-    } else {
-      console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
     }
-  } else {
-    console.error("Email and password must be provided for each account.");
   }
 }
 
-}
-
-// Clean up on exit
-process.on('SIGINT', () => {
-  console.log("Cleaning up...");
-  pingIntervals.forEach(clearInterval);
-  sockets.forEach(socket => socket.close());
-  process.exit();
-});
-
-// Start the main function
-main().catch(error => console.error("Error in main function:", error));
+startProcess();
