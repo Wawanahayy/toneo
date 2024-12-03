@@ -45,9 +45,13 @@ async function connectWebSocket(userId, email, proxy, accountIndex) {
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
   let agent;
-  if (proxy) {
+
+  // Check if proxy data is provided
+  if (proxy && proxy.username && proxy.password && proxy.host && proxy.port) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
     agent = new HttpsProxyAgent(proxyUrl);
+  } else {
+    console.warn(`No valid proxy data for user ${email}. Proceeding without proxy.`);
   }
 
   const socket = new WebSocket(wsUrl, { agent });
@@ -74,6 +78,11 @@ async function connectWebSocket(userId, email, proxy, accountIndex) {
 
   socket.onerror = (error) => {
     console.error(`WebSocket error for user ${email}:`, error);
+    // Try reconnecting after 10 seconds without blocking other processes
+    setTimeout(() => {
+      console.log(`Reconnecting WebSocket for user: ${email}`);
+      connectWebSocket(userId, email, proxy, accountIndex);  // Try to reconnect
+    }, 10000);  // Delay 10 seconds before retrying
   };
 }
 
@@ -98,15 +107,16 @@ function handleIncomingMessage(data, email) {
 }
 
 function handleReconnect(accountIndex, proxy) {
-  console.log(`Attempting to reconnect WebSocket for account ${accountIndex + 1}`);
-  if (!reconnecting) {
-    reconnecting = true;
+  if (!reconnecting[accountIndex]) {
+    reconnecting[accountIndex] = true;
+    console.log(`Attempting to reconnect WebSocket for account ${accountIndex + 1}`);
     setTimeout(() => {
       const account = accountsData[accountIndex];
       if (account) {
         connectWebSocket(account.userId, account.email, account.proxy, accountIndex);
       }
-    }, 5000); // Reconnect after 5 seconds
+      reconnecting[accountIndex] = false; // Allow reconnecting again
+    }, 10000); // Reconnect after 10 seconds
   }
 }
 
