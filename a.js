@@ -10,9 +10,10 @@ let pingIntervals = [];
 let isFirstMessage = {};
 let colorIndex = 0; // Menggunakan index warna untuk kedip
 let lastPingTime;
-let pingInterval = 30000; // Anda bisa membuat ini dapat diatur
+let pingInterval = 30000; // Ping 30 detik
 let accountsData = [];
 let startTime;
+let reconnecting = false; // Flag untuk menandakan percakapan ulang setelah gagal
 
 function formatDate(date) {
   return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -39,7 +40,7 @@ async function getConfig() {
   }
 }
 
-async function connectWebSocket(userId, email, proxy) {
+async function connectWebSocket(userId, email, proxy, accountIndex) {
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
   const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
@@ -48,18 +49,17 @@ async function connectWebSocket(userId, email, proxy) {
     const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
     agent = new HttpsProxyAgent(proxyUrl);
   }
+
   const socket = new WebSocket(wsUrl, { agent });
 
   socket.onopen = () => {
     console.log(`WebSocket connected for user: ${email}`);
-    const account = accountsData.find(account => account.email === email);
+    const account = accountsData[accountIndex];
     if (account) {
       account.socket = socket;
       account.pingStatus = 'Active';
     }
-    startPing(socket, email);
-    startBlinkingColorMessage();
-    updateDisplay();
+    startPing(socket, email, accountIndex);
   };
 
   socket.onmessage = (event) => {
@@ -69,7 +69,7 @@ async function connectWebSocket(userId, email, proxy) {
 
   socket.onclose = () => {
     console.log(`WebSocket disconnected for user: ${email}`);
-    handleReconnect(email, proxy);
+    handleReconnect(accountIndex, proxy);
   };
 
   socket.onerror = (error) => {
@@ -97,80 +97,44 @@ function handleIncomingMessage(data, email) {
   }
 }
 
-function handleReconnect(email, proxy) {
-  console.log(`Attempting to reconnect WebSocket for user: ${email}`);
-  setTimeout(() => {
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      connectWebSocket(account.userId, email, proxy);
-    }
-  }, 5000); // Reconnect after 5 seconds
+function handleReconnect(accountIndex, proxy) {
+  console.log(`Attempting to reconnect WebSocket for account ${accountIndex + 1}`);
+  if (!reconnecting) {
+    reconnecting = true;
+    setTimeout(() => {
+      const account = accountsData[accountIndex];
+      if (account) {
+        connectWebSocket(account.userId, account.email, account.proxy, accountIndex);
+      }
+    }, 5000); // Reconnect after 5 seconds
+  }
 }
 
-function startPing(socket, email) {
-  const pingId = setInterval(() => {
+function startPing(socket, email, accountIndex) {
+  // Ping pertama
+  setTimeout(() => {
     if (socket.readyState === WebSocket.OPEN) {
       lastPingTime = Date.now();
       socket.send(JSON.stringify({ type: "ping" }));
-      const account = accountsData.find(account => account.email === email);
+      const account = accountsData[accountIndex];
+      if (account) {
+        account.pingStatus = 'Active';
+      }
+    }
+  }, accountIndex * 1000); // Ping bergantian setiap 1 detik
+  
+  // Ping kedua setelah 30 detik
+  setInterval(() => {
+    if (socket.readyState === WebSocket.OPEN) {
+      lastPingTime = Date.now();
+      socket.send(JSON.stringify({ type: "ping" }));
+      const account = accountsData[accountIndex];
       if (account) {
         account.pingStatus = 'Active';
       }
     }
   }, pingInterval);
-  pingIntervals.push(pingId);
 }
-
-function updateDisplay() {
-  const currentTime = formatDate(new Date());
-  const elapsedTime = calculateElapsedTime();
-
-  console.clear();
-
-  // Menampilkan garis pemisah di atas tabel
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
-  const header = [
-    "ACCOUNT".padEnd(12),
-    "EMAIL".padEnd(25),
-    "DATE/JAM:".padEnd(11),
-    "Poin DAILY:".padEnd(9),
-    "Total Poin:".padEnd(12),
-    "Proxy:".padEnd(3),
-    "PING:".padEnd(9),
-    "TIME RUN:".padEnd(12),
-    "Websocket:".padEnd(15),
-    "JOIN MY CHANNEL TG:".padEnd(25)
-  ];
-
-  console.log(colors[colorIndex] + header.join(" | ") + '\x1b[0m');
-
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
-  // Menampilkan setiap akun
-  accountsData.forEach((account, index) => {
-    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
-    const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive';
-
-    // Menampilkan informasi akun dengan warna berkedip
-    console.log(colors[colorIndex] + ` AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
-  });
-
-  // Menampilkan garis pemisah di bawah tabel
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
-  // Update warna untuk tampilan berkedip
-  colorIndex = (colorIndex + 1) % colors.length;
-}
-
-// Fungsi untuk memulai tampilan berkedip
-function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
-}
-
-// Memulai efek berkedip
-startBlinkingColorMessage();
 
 async function getUserId(account, index) {
   const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
@@ -199,26 +163,46 @@ async function getUserId(account, index) {
         resolve(null);
       }
     } catch (error) {
-      console.error(`Error during login for account ${index + 1}:`, error);
+      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
       resolve(null);
     }
   });
 }
 
-async function startProcess() {
+async function main() {
   const config = await getConfig();
-  accountsData = config.accounts;
+  const accounts = config.accounts;
 
   startTime = new Date();
 
-  for (let i = 0; i < accountsData.length; i++) {
-    const account = accountsData[i];
-    const userId = await getUserId(account, i);
-    if (userId) {
-      account.userId = userId;
-      await connectWebSocket(userId, account.email, account.proxy);
+  for (const account of accounts) {
+    if (account.email && account.password) {
+      const userId = await getUserId(account, accountsData.length);
+      if (userId) {
+        // Hanya menambahkan akun jika userId valid
+        accountsData.push({
+          email: account.email,
+          pointsTotal: 0,
+          pointsToday: 0,
+          proxy: account.proxy ? true : false,
+          pingStatus: 'Inactive',
+          userId // Store the userId
+        });
+        await connectWebSocket(userId, account.email, account.proxy, accountsData.length - 1);
+      } else {
+        console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
+      }
     }
   }
+
+  // Try reconnecting in the background every minute if there's any failed connection
+  setInterval(() => {
+    accountsData.forEach((account, index) => {
+      if (account.pingStatus === 'Inactive') {
+        connectWebSocket(account.userId, account.email, account.proxy, index);
+      }
+    });
+  }, 60000); // Check reconnect every minute
 }
 
-startProcess();
+main();
