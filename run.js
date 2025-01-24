@@ -227,7 +227,7 @@ async function connectWebSocket(index) {
       console.log(`Pulse dari server diterima untuk Akun ${index + 1}. Mulai ping...`);
       setTimeout(() => {
         startPinging(index);
-      }, 10000);
+      }, 1000);
     }
   };
 
@@ -266,7 +266,7 @@ function startPinging(index) {
     if (sockets[index] && sockets[index].readyState === WebSocket.OPEN) {
       sockets[index].send("ping");
     }
-  }, 10000); // Kirim ping setiap 10 detik
+  }, 1000); // Kirim ping setiap 10 detik
 }
 
 function startCountdownAndPoints(index) {
