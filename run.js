@@ -172,7 +172,6 @@ function displayAllAccounts() {
         'TOTAL POINT'.padEnd(15, ' ') + 
         'POINT TODAY'.padEnd(14, ' ') + 
         'PESAN'.padEnd(18, ' ') +
-        '15 MIN'.padEnd(3, ' ') +  
         'PROXY'.padEnd(8, ' ') + 
         'TIME RUN'.padEnd(15, ' ') + 
         'DATE'.padEnd(12, ' ') 

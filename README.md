@@ -1,44 +1,12 @@
-# if you need multi account
+# JawaPride-all.sh
 
-use proxy
-```
-{
-  "accounts": [
-    {
-      "email": "youe_email@gmail.com",
-      "password": "kata_sandi_akun_1",
-      "proxy": {
-        "host": "proxy_host_1",
-        "port": 8080,
-        "username": "user1",
-        "password": "pass1"
-      }
-    },
-    {
-      "email": "your_email@gmail.com",
-      "password": "kata_sandi_akun_2",
-      "proxy": null
-    }
-  ]
-}
-```
+# JOIN MY CHANNEL <img src="https://github.com/Wawanahayy/Autonomys-Network-/blob/main/telegram.gif" alt="JOIN MY CHANNEL" width="50" height="50">
+- [TELEGRAM CHANNEL](https://t.me/AirdropJP_JawaPride)
+- [WEBSITE](https://linktr.ee/Jawa_Pride_ID)
+- [DISCUSS](https://t.me/AirdropJPdiskusi)
+- [TWITTER/X](https://x.com/JAWAPRIDE_ID)
+- [for me](https://t.me/timplexzz)
+- - - - - - - - -
+<img src="https://github.com/Wawanahayy/Autonomys-Network-/blob/main/photo.jpg" alt="-" width="250" height="250"> <img src="https://github.com/Wawanahayy/Autonomys-Network-/blob/main/photo1.jpg" alt="-" width="250" height="250"> <img src="https://github.com/Wawanahayy/Autonomys-Network-/blob/main/2in1.gif" alt="-" width="250" height="250">
+- - - - - - - - -
 
-non proxy
-```
-{
-  "accounts": [
-    {
-      "email": "your@gmail.com",
-      "password": "paswword" 
-    },
-    {
-      "email": "your@gmail.com", 
-      "password": "pasword" 
-    },
-    {
-      "email": "", 
-      "password": "" 
-    }
-  ]
-}
-```
