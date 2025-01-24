@@ -44,16 +44,18 @@ function loadAccounts() {
 }
 
 function loadProxies() {
-  if (!fs.existsSync('proxy.txt')) {
-    console.error('proxy.txt tidak ditemukan. Harap tambahkan file dengan data proxy.');
-    process.exit(1);
-  }
-
-  try {
-    const data = fs.readFileSync('proxy.txt', 'utf8');
-    proxies = data.split('\n').map(line => line.trim()).filter(line => line);
-  } catch (err) {
-    console.error('Gagal memuat proxy:', err);
+  if (fs.existsSync('proxy.txt')) {
+    try {
+      const data = fs.readFileSync('proxy.txt', 'utf8');
+      proxies = data.split('\n').map(line => line.trim()).filter(line => line);
+      if (proxies.length > 0) {
+        useProxy = true;  // Set useProxy to true if proxies are found
+      }
+    } catch (err) {
+      console.error('Gagal memuat proxy:', err);
+    }
+  } else {
+    console.log('proxy.txt tidak ditemukan. Tidak menggunakan proxy.');
   }
 }
 
@@ -131,18 +133,12 @@ function formatCountdown(countdown) {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-
 function formatDate() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
     return `${day}/${month}/${year}`;
-}
-function formatCountdown(countdown) {
-  const minutes = Math.floor(countdown / 60);
-  const seconds = countdown % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function startCountdown(index) {
@@ -167,38 +163,38 @@ function displayAllAccounts() {
 
   console.log(
     chalk.cyan(
-        'EMAIL'.padEnd(30, ' ') + 
-        'BROWSER ID'.padEnd(25, ' ') + 
-        'TOTAL POINT'.padEnd(15, ' ') + 
-        'POINT TODAY'.padEnd(14, ' ') + 
-        'PESAN'.padEnd(18, ' ') +
-        'PROXY'.padEnd(8, ' ') + 
-        'TIME RUN'.padEnd(15, ' ') + 
-        'DATE'.padEnd(12, ' ') 
+      'EMAIL'.padEnd(30, ' ') +
+      'BROWSER ID'.padEnd(25, ' ') +
+      'TOTAL POINT'.padEnd(15, ' ') +
+      'POINT TODAY'.padEnd(14, ' ') +
+      'PESAN'.padEnd(18, ' ') +
+      'PROXY'.padEnd(8, ' ') +
+      'TIME RUN'.padEnd(15, ' ') +
+      'DATE'.padEnd(12, ' ')
     )
-);
-console.log(chalk.cyan(separatorLine));
+  );
+  console.log(chalk.cyan(separatorLine));
 
-for (let i = 0; i < accounts.length; i++) {
+  for (let i = 0; i < accounts.length; i++) {
     const account = accounts[i];
     const formattedEmail = chalk.red(account.email.padEnd(30, ' '));
-    const formattedBrowserId = browserIds[i].padEnd(25, ' ');
-    const formattedPointsTotal = pointsTotals[i].toString().padEnd(12, ' ');
-    const formattedPointsToday = pointsToday[i].toString().padEnd(14, ' ');
-    const formattedMessage = (sockets[i] && sockets[i].readyState === WebSocket.OPEN) 
-        ? 'YES'.padEnd(18, ' ')  // Tampilkan YES jika terkoneksi
-        : 'NO'.padEnd(18, ' ');  // Tampilkan NO jika tidak terkoneksi
-        const formattedProxy = (useProxy && proxies[i % proxies.length] ? proxies[i % proxies.length] : 'NO').padEnd(5, ' ');
-        const formattedTime = chalk.green(formatTime().padEnd(13, ' '));
-        const formattedDate = chalk.yellow(formatDate().padEnd(13, ' '));
-        
+    const formattedBrowserId = browserIds[i]?.padEnd(25, ' ') || 'N/A'.padEnd(25, ' ');
+    const formattedPointsTotal = pointsTotals[i]?.toString().padEnd(12, ' ') || '0'.padEnd(12, ' ');
+    const formattedPointsToday = pointsToday[i]?.toString().padEnd(14, ' ') || '0'.padEnd(14, ' ');
+    const formattedMessage = (sockets[i] && sockets[i].readyState === WebSocket.OPEN)
+      ? 'YES'.padEnd(18, ' ')
+      : 'NO'.padEnd(18, ' ');
+    const formattedProxy = (useProxy && proxies[i % proxies.length])
+      ? chalk.green('YES').padEnd(5, ' ')
+      : chalk.red('NO').padEnd(5, ' ');
+    const formattedTime = chalk.green(formatTime().padEnd(13, ' '));
+    const formattedDate = chalk.yellow(formatDate().padEnd(13, ' '));
 
     console.log(chalk.white(`${formattedEmail} ${formattedBrowserId} ${formattedPointsTotal} ${formattedPointsToday} ${formattedMessage} ${formattedProxy} ${formattedTime} ${formattedDate}`));
-}
+  }
 
   console.log(chalk.cyan(separatorLine));
 }
-
 
 async function connectWebSocket(index) {
   if (sockets[index]) return;
@@ -256,34 +252,26 @@ async function reconnectWebSocket(index) {
   setTimeout(() => {
     sockets[index] = new WebSocket(wsUrl, { agent });
     sockets[index].onopen = () => {
-      console.log(`Akun ${index + 1} Terhubung Lagi`);
+      console.log(`Akun ${index + 1} Terhubung kembali`);
       startPinging(index);
+      startCountdownAndPoints(index);
     };
-  }, 5000);
+  }, 5000); // Coba reconnect setelah 5 detik
 }
 
-async function startPinging(index) {
+function startPinging(index) {
   if (pingIntervals[index]) clearInterval(pingIntervals[index]);
 
-  const delayTime = Math.floor(Math.random() * 4000) + 1000; // Delay antara 1-4 detik
   pingIntervals[index] = setInterval(() => {
     if (sockets[index] && sockets[index].readyState === WebSocket.OPEN) {
-      sockets[index].send(JSON.stringify({ action: 'ping' }));
-      if (countdowns[index] === null) {
-        countdowns[index] = 900; // Mulai hitung mundur dari 15 detik saat ping pertama
-      }
+      sockets[index].send("ping");
     }
-  }, delayTime);
+  }, 10000); // Kirim ping setiap 10 detik
 }
 
-async function startCountdownAndPoints(index) {
-  if (countdownIntervals[index]) clearInterval(countdownIntervals[index]);
-
-  countdownIntervals[index] = setInterval(() => {
-    if (countdowns[index] > 0) {
-      countdowns[index]--;
-    }
-  }, 1000);
+function startCountdownAndPoints(index) {
+  countdowns[index] = 300; // 5 menit countdown
+  startCountdown(index);
 }
 
 async function getUserId(index) {
