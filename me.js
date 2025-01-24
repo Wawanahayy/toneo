@@ -1,259 +1,301 @@
-const WebSocket = require('ws');
-const { promisify } = require('util');
-const fs = require('fs');
 const axios = require('axios');
+const chalk = require('chalk');
+const WebSocket = require('ws');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const colors = ['\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[37m']; // Warna tambahan
+const fs = require('fs');
+const readline = require('readline');
+const keypress = require('keypress');
+const delay = require('delay');
 
 let sockets = [];
 let pingIntervals = [];
-let isFirstMessage = {};
-let colorIndex = 0; // Menggunakan index warna untuk kedip
-let lastPingTime;
-let pingInterval = 30000; // Anda bisa membuat ini dapat diatur
-let accountsData = [];
-let startTime;
+let countdownIntervals = [];
+let countdowns = [];
+let pointsTotals = [];
+let pointsToday = [];
+let lastUpdateds = [];
+let messages = [];
+let userIds = [];
+let browserIds = [];
+let proxies = [];
+let accessTokens = [];
+let accounts = [];
+let useProxy = false;
+let enableAutoRetry = false;
 
-function formatDate(date) {
-  return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
-}
+function loadAccounts() {
+  if (!fs.existsSync('account.txt')) {
+    console.error('account.txt tidak ditemukan. Harap tambahkan file dengan data akun.');
+    process.exit(1);
+  }
 
-function formatElapsedTime(elapsedMilliseconds) {
-  const totalSeconds = Math.floor(elapsedMilliseconds / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-function calculateElapsedTime() {
-  return formatElapsedTime(new Date() - startTime);
-}
-
-async function getConfig() {
   try {
-    const data = await promisify(fs.readFile)('config.json', 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading config.json:", error);
-    return {};
+    const data = fs.readFileSync('account.txt', 'utf8');
+    accounts = data.split('\n').map(line => {
+      const [email, password] = line.split(',');
+      if (email && password) {
+        return { email: email.trim(), password: password.trim() };
+      }
+      return null;
+    }).filter(account => account !== null);
+  } catch (err) {
+    console.error('Gagal memuat akun:', err);
   }
 }
 
-async function connectWebSocket(userId, email, proxy) {
+function loadProxies() {
+  if (!fs.existsSync('proxy.txt')) {
+    console.error('proxy.txt tidak ditemukan. Harap tambahkan file dengan data proxy.');
+    process.exit(1);
+  }
+
+  try {
+    const data = fs.readFileSync('proxy.txt', 'utf8');
+    proxies = data.split('\n').map(line => line.trim()).filter(line => line);
+  } catch (err) {
+    console.error('Gagal memuat proxy:', err);
+  }
+}
+
+function normalizeProxyUrl(proxy) {
+  if (!proxy.startsWith('http://') && !proxy.startsWith('https://')) {
+    proxy = 'http://' + proxy;
+  }
+  return proxy;
+}
+
+async function initialize() {
+  loadAccounts();
+  loadProxies();
+  for (let i = 0; i < accounts.length; i++) {
+    countdowns[i] = null;
+    pointsTotals[i] = 0;
+    pointsToday[i] = 0;
+    lastUpdateds[i] = null;
+    messages[i] = '';
+    userIds[i] = null;
+    browserIds[i] = null;
+    accessTokens[i] = null;
+    getUserId(i);
+  }
+
+  // Mulai proses semua akun secara otomatis
+  for (let i = 0; i < accounts.length; i++) {
+    setTimeout(() => {
+      getUserId(i); // Mengambil userId dan mulai koneksi WebSocket
+    }, i * 1000); // Interval 1 detik untuk tiap akun
+  }
+
+  // Menampilkan log semua akun
+  setInterval(() => {
+    displayAllAccounts();
+  }, 5000); // Update tampilan setiap 5 detik
+}
+
+function generateBrowserId(index) {
+  return `browserId-${index}-${Math.random().toString(36).substring(2, 15)}`;
+}
+
+const { execSync } = require('child_process');
+
+function displayHeader() {
+    const width = process.stdout.columns;
+    const headerLines = [
+        chalk.bgCyan.black('============================================================'),
+        chalk.bgGreen.black('=======================  J.W.P.A  =========================='),
+        chalk.bgMagenta.white('================= @AirdropJP_JawaPride ====================='),
+        chalk.bgYellow.black('=============== https://x.com/JAWAPRIDE_ID ================='),
+        chalk.bgRed.white('============= https://linktr.ee/Jawa_Pride_ID =============='), 
+        chalk.bgBlue.black('============================================================')
+    ];
+
+  console.log("");
+  headerLines.forEach(line => {
+    const padding = Math.max(0, Math.floor((width - line.length) / 1));
+    console.log(chalk.green(' '.repeat(padding) + line));
+  });
+  console.log("");
+}
+
+function formatTime() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+}
+
+function formatCountdown(countdown) {
+    const minutes = Math.floor(countdown / 60);
+    const seconds = countdown % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function formatDate() {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function displayAllAccounts() {
+  console.clear();
+  displayHeader();
+
+  const width = process.stdout.columns;
+  const separatorLine = '_'.repeat(width);
+  console.log(chalk.cyan(separatorLine));
+
+  console.log(
+    chalk.cyan(
+        'EMAIL'.padEnd(30, ' ') + 
+        'BROWSER ID'.padEnd(25, ' ') + 
+        'TOTAL POINT'.padEnd(15, ' ') + 
+        'POINT TODAY'.padEnd(14, ' ') + 
+        'PESAN'.padEnd(18, ' ') + 
+        'PROXY'.padEnd(8, ' ') + 
+        'TIME RUN'.padEnd(15, ' ') + 
+        'DATE'.padEnd(12, ' ') 
+    )
+);
+console.log(chalk.cyan(separatorLine));
+
+for (let i = 0; i < accounts.length; i++) {
+    const account = accounts[i];
+    const formattedEmail = chalk.red(account.email.padEnd(30, ' '));
+    const formattedBrowserId = browserIds[i].padEnd(25, ' ');
+    const formattedPointsTotal = pointsTotals[i].toString().padEnd(12, ' ');
+    const formattedPointsToday = pointsToday[i].toString().padEnd(14, ' ');
+    const formattedMessage = (sockets[i] && sockets[i].readyState === WebSocket.OPEN) 
+        ? 'YES'.padEnd(18, ' ')  // Tampilkan YES jika terkoneksi
+        : 'NO'.padEnd(18, ' ');  // Tampilkan NO jika tidak terkoneksi
+        const formattedProxy = (useProxy && proxies[i % proxies.length] ? proxies[i % proxies.length] : 'NO').padEnd(5, ' ');
+        const formattedTime = chalk.green(formatTime().padEnd(13, ' '));
+        const formattedDate = chalk.yellow(formatDate().padEnd(13, ' '));
+        
+
+    console.log(chalk.white(`${formattedEmail} ${formattedBrowserId} ${formattedPointsTotal} ${formattedPointsToday} ${formattedMessage} ${formattedProxy} ${formattedTime} ${formattedDate}`));
+}
+
+  console.log(chalk.cyan(separatorLine));
+}
+
+
+async function connectWebSocket(index) {
+  if (sockets[index]) return;
   const version = "v0.2";
   const url = "wss://secure.ws.teneo.pro";
-  const wsUrl = `${url}/websocket?userId=${encodeURIComponent(userId)}&version=${encodeURIComponent(version)}`;
-  let agent;
-  if (proxy) {
-    const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
-    agent = new HttpsProxyAgent(proxyUrl);
-  }
-  const socket = new WebSocket(wsUrl, { agent });
+  const wsUrl = `${url}/websocket?accessToken=${encodeURIComponent(accessTokens[index])}&version=${encodeURIComponent(version)}`;
 
-  socket.onopen = () => {
-    console.log(`WebSocket connected for user: ${email}`);
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.socket = socket;
-      account.pingStatus = 'Active';
-    }
-    startPing(socket, email);
-    startBlinkingColorMessage();
-    updateDisplay();
+  const proxy = proxies[index % proxies.length];
+  const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
+
+  sockets[index] = new WebSocket(wsUrl, { agent });
+
+  sockets[index].onopen = async () => {
+    lastUpdateds[index] = new Date().toISOString();
+    console.log(`Akun ${index + 1} Terhubung, ${lastUpdateds[index]}`);
+    startPinging(index);
+    startCountdownAndPoints(index);
   };
 
-  socket.onmessage = (event) => {
+  sockets[index].onmessage = async (event) => {
     const data = JSON.parse(event.data);
-    handleIncomingMessage(data, email);
+    if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
+      lastUpdateds[index] = new Date().toISOString();
+      pointsTotals[index] = data.pointsTotal;
+      pointsToday[index] = data.pointsToday;
+      messages[index] = data.message;
+    }
+
+    if (data.message === "Pulse from server") {
+      console.log(`Pulse dari server diterima untuk Akun ${index + 1}. Mulai ping...`);
+      setTimeout(() => {
+        startPinging(index);
+      }, 10000);
+    }
   };
 
-  socket.onclose = () => {
-    console.log(`WebSocket disconnected for user: ${email}`);
-    handleReconnect(email, proxy);
+  sockets[index].onclose = () => {
+    console.log(`Akun ${index + 1} Terputus`);
+    reconnectWebSocket(index);
   };
 
-  socket.onerror = (error) => {
-    console.error(`WebSocket error for user ${email}:`, error);
+  sockets[index].onerror = (error) => {
+    console.error(`Kesalahan WebSocket untuk Akun ${index + 1}:`, error);
   };
 }
 
-function handleIncomingMessage(data, email) {
-  if (data.type === "pong") {
-    const pingTime = Date.now() - lastPingTime;
-    console.log(`Ping untuk user ${email}: ${pingTime} ms`);
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.pingStatus = 'Active';
-    }
-  }
+async function reconnectWebSocket(index) {
+  const version = "v0.2";
+  const url = "wss://secure.ws.teneo.pro";
+  const wsUrl = `${url}/websocket?accessToken=${encodeURIComponent(accessTokens[index])}&version=${encodeURIComponent(version)}`;
 
-  if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      account.pointsTotal = data.pointsTotal;
-      account.pointsToday = data.pointsToday;
-      updateDisplay();
-    }
-  }
-}
+  const proxy = proxies[index % proxies.length];
+  const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
 
-function handleReconnect(email, proxy) {
-  console.log(`Attempting to reconnect WebSocket for user: ${email}`);
   setTimeout(() => {
-    const account = accountsData.find(account => account.email === email);
-    if (account) {
-      connectWebSocket(account.userId, email, proxy);
-    }
-  }, 5000); // Reconnect after 5 seconds
+    sockets[index] = new WebSocket(wsUrl, { agent });
+    sockets[index].onopen = () => {
+      console.log(`Akun ${index + 1} Terhubung Lagi`);
+      startPinging(index);
+    };
+  }, 5000);
 }
 
-function startPing(socket, email, accountIndex) {
-  setTimeout(() => {
-    if (socket.readyState === WebSocket.OPEN) {
-      lastPingTime = Date.now();
-      socket.send(JSON.stringify({ type: "ping" }));
-      const account = accountsData.find(account => account.email === email);
-      if (account) {
-        account.pingStatus = 'Active';
+async function startPinging(index) {
+  if (pingIntervals[index]) clearInterval(pingIntervals[index]);
+
+  const delayTime = Math.floor(Math.random() * 4000) + 1000; // Delay antara 1-4 detik
+  pingIntervals[index] = setInterval(() => {
+    if (sockets[index] && sockets[index].readyState === WebSocket.OPEN) {
+      sockets[index].send(JSON.stringify({ action: 'ping' }));
+      if (countdowns[index] === null) {
+        countdowns[index] = 900; // Mulai hitung mundur dari 15 detik saat ping pertama
       }
     }
-  }, accountIndex * 1000); 
-  
+  }, delayTime);
+}
 
-  setInterval(() => {
-    if (socket.readyState === WebSocket.OPEN) {
-      lastPingTime = Date.now();
-      socket.send(JSON.stringify({ type: "ping" }));
-      const account = accountsData.find(account => account.email === email);
-      if (account) {
-        account.pingStatus = 'Active';
+async function startCountdownAndPoints(index) {
+  if (countdownIntervals[index]) clearInterval(countdownIntervals[index]);
+
+  countdownIntervals[index] = setInterval(() => {
+    if (countdowns[index] > 0) {
+      countdowns[index]--;
+    }
+  }, 1000);
+}
+
+async function getUserId(index) {
+  const loginUrl = "https://auth.teneo.pro/api/login";
+
+  const proxy = proxies[index % proxies.length];
+  const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
+
+  try {
+    const response = await axios.post(loginUrl, {
+      email: accounts[index].email,
+      password: accounts[index].password
+    }, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': `Bearer ${accessTokens[index]}`,
+        'Content-Type': 'application/json',
+        'authority': 'auth.teneo.pro',
+        'x-api-key': 'OwAG3kib1ivOJG4Y0OCZ8lJETa6ypvsDtGmdhcjA'
       }
-    }
-  }, pingInterval);
-}
+    });
 
-function updateDisplay() {
-  const currentTime = formatDate(new Date());
-  const elapsedTime = calculateElapsedTime();
-
-  console.clear();
-
-  // Menampilkan garis pemisah di atas tabel
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-  
-  const header = [
-  "ACCOUNT".padEnd(12),
-  "EMAIL".padEnd(25),
-  "DATE/JAM:".padEnd(11),
-  "Poin DAILY:".padEnd(9),
-  "Total Poin:".padEnd(12),
-  "Proxy:".padEnd(3),
-  "PING:".padEnd(9),
-  "TIME RUN:".padEnd(12),
-  "Websocket:".padEnd(15),
-  "JOIN MY CHANNEL TG:".padEnd(25)
-];
-
-console.log(colors[colorIndex] + header.join(" | ") + '\x1b[0m');
-
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
-  // Menampilkan setiap akun
-  accountsData.forEach((account, index) => {
-    const websocketStatus = account.socket && account.socket.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
-    const proxyStatus = account.proxy ? 'true' : 'false';
-    const pingStatus = account.pingStatus || 'Inactive';
-
-    // Menampilkan informasi akun dengan warna berkedip
-    console.log(colors[colorIndex] + ` AKUN ${index + 1}:     | ${account.email.padEnd(25)} | ${currentTime.padEnd(11)} | ${account.pointsToday.toString().padEnd(11)} | ${account.pointsTotal.toString().padEnd(12)} | ${proxyStatus.padEnd(5)} | ${pingStatus.padEnd(10)} | ${elapsedTime.padEnd(12)} | ${websocketStatus.padEnd(15)} | @AirdropJP_JawaPride` + '\x1b[0m');
-  });
-
-  // Menampilkan garis pemisah di bawah tabel
-  console.log("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
-
-  // Update warna untuk tampilan berkedip
-  colorIndex = (colorIndex + 1) % colors.length;
-}
-
-
-// Fungsi untuk memulai tampilan berkedip
-function startBlinkingColorMessage() {
-  setInterval(updateDisplay, 3000); // Ubah warna setiap 3 detik
-}
-
-// Memulai efek berkedip
-startBlinkingColorMessage();
-
-async function getUserId(account, index) {
-  const loginUrl = "https://ikknngrgxuxgjhplbpey.supabase.co/auth/v1/token?grant_type=password";
-  const authorization = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-  const apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra25uZ3JneHV4Z2pocGxicGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MzgxNTAsImV4cCI6MjA0MTAxNDE1MH0.DRAvf8nH1ojnJBc3rD_Nw6t1AV8X_g6gmY_HByG2Mag";
-
-  const email = account.email;
-  const password = account.password;
-
-  return new Promise(async (resolve) => {
-    try {
-      const response = await axios.post(loginUrl, { email, password }, {
-        headers: {
-          authorization,
-          apikey,
-          "Content-Type": "application/json"
-        }
-      });
-
-      if (response.data && response.data.user) {
-        console.log(`User ID for account ${index + 1}: ${response.data.user.id}`);
-        fs.appendFileSync('logs.txt', `User ID for account ${index + 1}: ${response.data.user.id}\n`, 'utf8');
-        resolve(response.data.user.id);
-      } else {
-        console.error(`User not found for account ${index + 1}.`);
-        resolve(null);
-      }
-    } catch (error) {
-      console.error(`Error during login for account ${index + 1}:`, error.response ? error.response.data : error.message);
-      resolve(null);
-    }
-  });
-}
-
-async function main() {
-  const config = await getConfig();
-  const accounts = config.accounts;
-
-  startTime = new Date();
-
-for (const account of accounts) {
-  if (account.email && account.password) {
-    const userId = await getUserId(account, accountsData.length);
-    if (userId) {
-      // Hanya menambahkan akun jika userId valid
-      accountsData.push({
-        email: account.email,
-        pointsTotal: 0,
-        pointsToday: 0,
-        proxy: account.proxy ? true : false,
-        pingStatus: 'Inactive',
-        userId // Store the userId
-      });
-      await connectWebSocket(userId, account.email, account.proxy);
-    } else {
-      console.error(`Failed to retrieve user ID for ${account.email}. Skipping WebSocket connection.`);
-    }
-  } else {
-    console.error("Email and password must be provided for each account.");
+    const { user, access_token } = response.data;
+    userIds[index] = user.id;
+    accessTokens[index] = access_token;
+    browserIds[index] = generateBrowserId(index);
+    connectWebSocket(index);
+  } catch (error) {
+    console.error(`Gagal login untuk akun ${index + 1}: ${error}`);
   }
 }
 
-}
-
-// Clean up on exit
-process.on('SIGINT', () => {
-  console.log("Cleaning up...");
-  pingIntervals.forEach(clearInterval);
-  sockets.forEach(socket => socket.close());
-  process.exit();
-});
-
-// Start the main function
-main().catch(error => console.error("Error in main function:", error));
+initialize();
