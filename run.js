@@ -197,66 +197,59 @@ function displayAllAccounts() {
 }
 
 async function connectWebSocket(index) {
-  if (sockets[index]) return;
-  const version = "v0.2";
-  const url = "wss://secure.ws.teneo.pro";
-  const wsUrl = `${url}/websocket?accessToken=${encodeURIComponent(accessTokens[index])}&version=${encodeURIComponent(version)}`;
+  try {
+    if (sockets[index]) return;
+    const version = "v0.2";
+    const url = "wss://secure.ws.teneo.pro";
+    const wsUrl = `${url}/websocket?accessToken=${encodeURIComponent(accessTokens[index])}&version=${encodeURIComponent(version)}`;
 
-  const proxy = proxies[index % proxies.length];
-  const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
+    const proxy = proxies[index % proxies.length];
+    const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
 
-  sockets[index] = new WebSocket(wsUrl, { agent });
-
-  sockets[index].onopen = async () => {
-    lastUpdateds[index] = new Date().toISOString();
-    console.log(`Akun ${index + 1} Terhubung, ${lastUpdateds[index]}`);
-    startPinging(index);
-    startCountdownAndPoints(index);
-  };
-
-  sockets[index].onmessage = async (event) => {
-    const data = JSON.parse(event.data);
-    if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
-      lastUpdateds[index] = new Date().toISOString();
-      pointsTotals[index] = data.pointsTotal;
-      pointsToday[index] = data.pointsToday;
-      messages[index] = data.message;
-    }
-
-    if (data.message === "Pulse from server") {
-      console.log(`Pulse dari server diterima untuk Akun ${index + 1}. Mulai ping...`);
-      setTimeout(() => {
-        startPinging(index);
-      }, 1000);
-    }
-  };
-
-  sockets[index].onclose = () => {
-    console.log(`Akun ${index + 1} Terputus`);
-    reconnectWebSocket(index);
-  };
-
-  sockets[index].onerror = (error) => {
-    console.error(`Kesalahan WebSocket untuk Akun ${index + 1}:`, error);
-  };
-}
-
-async function reconnectWebSocket(index) {
-  const version = "v0.2";
-  const url = "wss://secure.ws.teneo.pro";
-  const wsUrl = `${url}/websocket?accessToken=${encodeURIComponent(accessTokens[index])}&version=${encodeURIComponent(version)}`;
-
-  const proxy = proxies[index % proxies.length];
-  const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
-
-  setTimeout(() => {
     sockets[index] = new WebSocket(wsUrl, { agent });
-    sockets[index].onopen = () => {
-      console.log(`Akun ${index + 1} Terhubung kembali`);
+
+    sockets[index].onopen = async () => {
+      lastUpdateds[index] = new Date().toISOString();
+      console.log(`Akun ${index + 1} Terhubung, ${lastUpdateds[index]}`);
       startPinging(index);
       startCountdownAndPoints(index);
     };
-  }, 5000); // Coba reconnect setelah 5 detik
+
+    sockets[index].onmessage = async (event) => {
+      const data = JSON.parse(event.data);
+      if (data.pointsTotal !== undefined && data.pointsToday !== undefined) {
+        lastUpdateds[index] = new Date().toISOString();
+        pointsTotals[index] = data.pointsTotal;
+        pointsToday[index] = data.pointsToday;
+        messages[index] = data.message;
+      }
+
+      if (data.message === "Pulse from server") {
+        console.log(`Pulse dari server diterima untuk Akun ${index + 1}. Mulai ping...`);
+        setTimeout(() => {
+          startPinging(index);
+        }, 1000);
+      }
+    };
+
+    sockets[index].onclose = () => {
+      console.log(`Akun ${index + 1} Terputus`);
+      reconnectWebSocket(index);
+    };
+
+    sockets[index].onerror = (error) => {
+      console.error(`Kesalahan WebSocket untuk Akun ${index + 1}:`, error);
+      reconnectWebSocket(index);  // Menangani kesalahan dengan reconnect otomatis
+    };
+  } catch (error) {
+    console.error(`Terjadi kesalahan saat mencoba menghubungkan WebSocket untuk Akun ${index + 1}:`, error);
+  }
+}
+
+async function reconnectWebSocket(index) {
+  setTimeout(() => {
+    connectWebSocket(index); // Coba reconnect WebSocket setelah 5 detik
+  }, 5000);
 }
 
 function startPinging(index) {
@@ -266,42 +259,13 @@ function startPinging(index) {
     if (sockets[index] && sockets[index].readyState === WebSocket.OPEN) {
       sockets[index].send("ping");
     }
-  }, 1000); // Kirim ping setiap 10 detik
+  }, 1000); // Kirim ping setiap detik
 }
 
 function startCountdownAndPoints(index) {
-  countdowns[index] = 300; // 5 menit countdown
+  countdowns[index] = 3600; // Mulai hitung mundur 1 jam
   startCountdown(index);
 }
 
-async function getUserId(index) {
-  const loginUrl = "https://auth.teneo.pro/api/login";
-
-  const proxy = proxies[index % proxies.length];
-  const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
-
-  try {
-    const response = await axios.post(loginUrl, {
-      email: accounts[index].email,
-      password: accounts[index].password
-    }, {
-      httpsAgent: agent,
-      headers: {
-        'Authorization': `Bearer ${accessTokens[index]}`,
-        'Content-Type': 'application/json',
-        'authority': 'auth.teneo.pro',
-        'x-api-key': 'OwAG3kib1ivOJG4Y0OCZ8lJETa6ypvsDtGmdhcjA'
-      }
-    });
-
-    const { user, access_token } = response.data;
-    userIds[index] = user.id;
-    accessTokens[index] = access_token;
-    browserIds[index] = generateBrowserId(index);
-    connectWebSocket(index);
-  } catch (error) {
-    console.error(`Gagal login untuk akun ${index + 1}: ${error}`);
-  }
-}
-
+// Inisialisasi
 initialize();
