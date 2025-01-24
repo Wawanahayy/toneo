@@ -267,5 +267,55 @@ function startCountdownAndPoints(index) {
   startCountdown(index);
 }
 
-// Inisialisasi
+async function getUserId(index) {
+  const loginUrl = "https://auth.teneo.pro/api/login";
+
+  const proxy = proxies[index % proxies.length];
+  const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
+
+  try {
+    const response = await axios.post(loginUrl, {
+      email: accounts[index].email,
+      password: accounts[index].password
+    }, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': `Bearer ${accessTokens[index]}`,
+        'Content-Type': 'application/json',
+        'authority': 'auth.teneo.pro',
+        'x-api-key': 'OwAG3kib1ivOJG4Y0OCZ8lJETa6ypvsDtGmdhcjA'
+      }
+    });
+
+    const { user, access_token } = response.data;
+    userIds[index] = user.id;
+    accessTokens[index] = access_token;
+    browserIds[index] = generateBrowserId(index);
+    messages[index] = "Connected successfully";
+
+    if (index === currentAccountIndex) {
+      displayAccountData(index);
+    }
+
+    console.log(`User Data for Account ${index + 1}:`, user);
+    startCountdownAndPoints(index);
+    await connectWebSocket(index);
+  } catch (error) {
+    const errorMessage = error.response ? error.response.data.message : error.message;
+    messages[index] = `Error: ${errorMessage}`;
+
+    if (index === currentAccountIndex) {
+      displayAccountData(index);
+    }
+
+    console.error(`Error for Account ${index + 1}:`, errorMessage);
+
+    if (enableAutoRetry) {
+      console.log(`Retrying account ${index + 1} in 3 minutes...`);
+      setTimeout(() => getUserId(index), 180000);
+    }
+  }
+}
+
+
 initialize();
