@@ -1,7 +1,7 @@
 {
   "name": "toneo",
   "version": "1.0.0",
-  "description": "",
+  "description": "Jawa Pride",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -18,10 +18,12 @@
   "homepage": "https://github.com/Wawanahayy/toneo#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.46.1",
-    "axios": "^1.7.7",
+    "axios": "^1.7.9",
     "chalk": "^4.1.2",
+    "delay": "^4.3.0",
     "dotenv": "^16.4.5",
     "https-proxy-agent": "^7.0.5",
+    "keypress": "^0.2.1",
     "ws": "^8.18.0"
   }
 }
