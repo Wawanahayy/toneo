@@ -291,31 +291,10 @@ async function getUserId(index) {
     userIds[index] = user.id;
     accessTokens[index] = access_token;
     browserIds[index] = generateBrowserId(index);
-    messages[index] = "Connected successfully";
-
-    if (index === currentAccountIndex) {
-      displayAccountData(index);
-    }
-
-    console.log(`User Data for Account ${index + 1}:`, user);
-    startCountdownAndPoints(index);
-    await connectWebSocket(index);
+    connectWebSocket(index);
   } catch (error) {
-    const errorMessage = error.response ? error.response.data.message : error.message;
-    messages[index] = `Error: ${errorMessage}`;
-
-    if (index === currentAccountIndex) {
-      displayAccountData(index);
-    }
-
-    console.error(`Error for Account ${index + 1}:`, errorMessage);
-
-    if (enableAutoRetry) {
-      console.log(`Retrying account ${index + 1} in 3 minutes...`);
-      setTimeout(() => getUserId(index), 180000);
-    }
+    console.error(`Gagal login untuk akun ${index + 1}: ${error}`);
   }
 }
-
 
 initialize();
