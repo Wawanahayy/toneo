@@ -6,6 +6,8 @@ const fs = require('fs');
 const readline = require('readline');
 const keypress = require('keypress');
 const delay = require('delay');
+const { displayAllAccounts } = require('./a');
+
 
 let sockets = [];
 let pingIntervals = [];
