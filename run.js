@@ -179,7 +179,12 @@ function startCountdown(index) {
   }, 1000); // Update setiap detik
 }
 
-function displayAllAccounts() {
+function displayAccountData(index) {
+  if (index < 0 || index >= accounts.length) {
+    console.log(chalk.red(`Akun dengan index ${index} tidak ditemukan.`));
+    return;
+  }
+
   console.clear();
   displayHeader();
 
@@ -201,24 +206,21 @@ function displayAllAccounts() {
   );
   console.log(chalk.cyan(separatorLine));
 
-  for (let i = 0; i < accounts.length; i++) {
-    const account = accounts[i];
-    const formattedEmail = chalk.red(account.email.padEnd(30, ' '));
-    const formattedBrowserId = browserIds[i]?.padEnd(25, ' ') || 'N/A'.padEnd(25, ' ');
-    const formattedPointsTotal = pointsTotals[i]?.toString().padEnd(12, ' ') || '0'.padEnd(12, ' ');
-    const formattedPointsToday = pointsToday[i]?.toString().padEnd(14, ' ') || '0'.padEnd(14, ' ');
-    const formattedMessage = (sockets[i] && sockets[i].readyState === WebSocket.OPEN)
-      ? 'YES'.padEnd(18, ' ')
-      : 'NO'.padEnd(18, ' ');
-    const formattedProxy = (useProxy && proxies[i % proxies.length])
-      ? chalk.green('YES').padEnd(5, ' ')
-      : chalk.red('NO').padEnd(5, ' ');
-    const formattedTime = chalk.green(formatTime().padEnd(13, ' '));
-    const formattedDate = chalk.yellow(formatDate().padEnd(13, ' '));
+  const account = accounts[index];
+  const formattedEmail = chalk.red(account.email.padEnd(30, ' '));
+  const formattedBrowserId = browserIds[index]?.padEnd(25, ' ') || 'N/A'.padEnd(25, ' ');
+  const formattedPointsTotal = pointsTotals[index]?.toString().padEnd(12, ' ') || '0'.padEnd(12, ' ');
+  const formattedPointsToday = pointsToday[index]?.toString().padEnd(14, ' ') || '0'.padEnd(14, ' ');
+  const formattedMessage = (sockets[index] && sockets[index].readyState === WebSocket.OPEN)
+    ? 'YES'.padEnd(18, ' ')
+    : 'NO'.padEnd(18, ' ');
+  const formattedProxy = (useProxy && proxies[index % proxies.length])
+    ? chalk.green('YES').padEnd(5, ' ')
+    : chalk.red('NO').padEnd(5, ' ');
+  const formattedTime = chalk.green(formatTime().padEnd(13, ' '));
+  const formattedDate = chalk.yellow(formatDate().padEnd(13, ' '));
 
-    console.log(chalk.white(`${formattedEmail} ${formattedBrowserId} ${formattedPointsTotal} ${formattedPointsToday} ${formattedMessage} ${formattedProxy} ${formattedTime} ${formattedDate}`));
-  }
-
+  console.log(chalk.white(`${formattedEmail} ${formattedBrowserId} ${formattedPointsTotal} ${formattedPointsToday} ${formattedMessage} ${formattedProxy} ${formattedTime} ${formattedDate}`));
   console.log(chalk.cyan(separatorLine));
 }
 
