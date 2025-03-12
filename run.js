@@ -269,7 +269,6 @@ function startCountdownAndPoints(index) {
 
 async function getUserId(index) {
   const loginUrl = "https://auth.teneo.pro/api/login";
-
   const proxy = proxies[index % proxies.length];
   const agent = useProxy && proxy ? new HttpsProxyAgent(normalizeProxyUrl(proxy)) : null;
 
@@ -280,10 +279,21 @@ async function getUserId(index) {
     }, {
       httpsAgent: agent,
       headers: {
-        'Authorization': `Bearer ${accessTokens[index]}`,
         'Content-Type': 'application/json',
         'authority': 'auth.teneo.pro',
-        'x-api-key': 'OwAG3kib1ivOJG4Y0OCZ8lJETa6ypvsDtGmdhcjA'
+        'x-api-key': 'OwAG3kib1ivOJG4Y0OCZ8lJETa6ypvsDtGmdhcjB',
+        'accept': 'application/json, text/plain, */*',
+        'accept-encoding': 'gzip, deflate, br, zstd',
+        'accept-language': 'en-US,en;q=0.9,id;q=0.8',
+        'origin': 'https://dashboard.teneo.pro',
+        'referer': 'https://dashboard.teneo.pro/',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"'
       }
     });
 
@@ -291,10 +301,31 @@ async function getUserId(index) {
     userIds[index] = user.id;
     accessTokens[index] = access_token;
     browserIds[index] = generateBrowserId(index);
-    connectWebSocket(index);
+    messages[index] = "Connected successfully";
+
+    if (index === currentAccountIndex) {
+      displayAccountData(index);
+    }
+
+    console.log(`User Data for Account ${index + 1}:`, user);
+    startCountdownAndPoints(index);
+    await connectWebSocket(index);
   } catch (error) {
-    console.error(`Gagal login untuk akun ${index + 1}: ${error}`);
+    const errorMessage = error.response ? error.response.data.message : error.message;
+    messages[index] = `Error: ${errorMessage}`;
+
+    if (index === currentAccountIndex) {
+      displayAccountData(index);
+    }
+
+    console.error(`Error for Account ${index + 1}:`, errorMessage);
+
+    if (enableAutoRetry) {
+      console.log(`Retrying account ${index + 1} in 3 minutes...`);
+      setTimeout(() => getUserId(index), 180000);
+    }
   }
 }
+
 
 initialize();
