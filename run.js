@@ -22,6 +22,8 @@ let accessTokens = [];
 let accounts = [];
 let useProxy = false;
 let enableAutoRetry = false;
+let currentAccountIndex = 0; 
+
 
 function loadAccounts() {
   if (!fs.existsSync('akun.txt')) {
