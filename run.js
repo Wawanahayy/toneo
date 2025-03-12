@@ -104,25 +104,41 @@ const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
 
 async function getTurnstileToken(email, password) {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    await page.goto('https://dashboard.teneo.pro');
-
-    // Isi email & password
-    await page.type('#email', email);
-    await page.type('#password', password);
-    await page.click('#login-button');
-
-    // Tunggu elemen Turnstile muncul
-    await page.waitForSelector('[name="cf-turnstile-response"]', { timeout: 10000 });
-
-    // Ambil token Turnstile
-    const token = await page.evaluate(() => {
-        return document.querySelector('[name="cf-turnstile-response"]').value;
+    const browser = await puppeteer.launch({ 
+        headless: true, 
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });
 
-    await browser.close();
-    return token;
+    try {
+        const page = await browser.newPage();
+        await page.goto('https://dashboard.teneo.pro', { waitUntil: 'networkidle2' });
+
+        // Isi email & password
+        await page.type('#email', email);
+        await page.type('#password', password);
+        await page.click('#login-button');
+
+        // Tunggu elemen Turnstile muncul maksimal 30 detik
+        await page.waitForSelector('[name="cf-turnstile-response"]', { timeout: 30000 });
+
+        // Cek apakah elemen ada sebelum mengambil nilai
+        const token = await page.evaluate(() => {
+            const turnstileInput = document.querySelector('[name="cf-turnstile-response"]');
+            return turnstileInput ? turnstileInput.value : null;
+        });
+
+        await browser.close();
+
+        if (!token) {
+            throw new Error('Turnstile token tidak ditemukan');
+        }
+
+        return token;
+    } catch (error) {
+        console.error('Error:', error.message);
+        await browser.close();
+        return null;
+    }
 }
 
 
